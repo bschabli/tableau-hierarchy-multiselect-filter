@@ -71,4 +71,26 @@ $('apply').addEventListener('click',apply);
 $('reload').addEventListener('click',()=>reload(true));
 $('all').addEventListener('click',()=>setMode('ALLE'));
 $('none').addEventListener('click',()=>setMode('KEINE'));
-try{mode=await connector.initialize();await reload(true);}catch(e){status('Initialisierung: '+e.message,true);}
+async function start() {
+  window.__hierarchyAppStarted = true;
+  status('Verbinde mit Tableau ...');
+  try {
+    // A timeout diagnoses a stalled Tableau handshake; it does not cancel it.
+    const handshake = connector.initialize();
+    handshake.catch(error => console.error('[Hierarchy Filter] Tableau handshake:', error));
+    mode = await Promise.race([
+      handshake,
+      new Promise((_, reject) => setTimeout(
+        () => reject(new Error('Tableau antwortet seit 15 Sekunden nicht.')), 15000))
+    ]);
+    status('Tableau verbunden. Lese Daten und Set ...');
+    await reload(true);
+  } catch (error) {
+    console.error('[Hierarchy Filter] Startfehler:', error);
+    status('Initialisierung fehlgeschlagen: ' + (error?.message || String(error)), true);
+  }
+}
+start().catch(error => {
+  console.error('[Hierarchy Filter] Unerwarteter Startfehler:', error);
+  status('Startfehler: ' + (error?.message || String(error)), true);
+});
