@@ -1,0 +1,36 @@
+name: Deploy hierarchy filter PoC to GitHub Pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Samples/Viz/HierarchyFilterPoC/**'
+      - 'lib/tableau.extensions.1.latest.min.js'
+      - '.github/workflows/deploy-hierarchy-poc.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build static site with local dependencies
+        run: |
+          mkdir -p _site/Samples/Viz/HierarchyFilterPoC _site/lib
+          cp Samples/Viz/HierarchyFilterPoC/{index.html,filter.js,core.js,filter.css,filter.trex} _site/Samples/Viz/HierarchyFilterPoC/
+          cp lib/tableau.extensions.1.latest.min.js _site/lib/
+          touch _site/.nojekyll
+          printf '%s\n' '<!doctype html><html><body><a href="Samples/Viz/HierarchyFilterPoC/index.html">Hierarchy Filter PoC</a></body></html>' > _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

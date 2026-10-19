@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
+  <worksheet-extension id="io.github.bschabli.tableau.hierarchy.filter.poc" extension-version="0.1.0">
+    <default-locale>en_US</default-locale>
+    <name resource-id="name"/>
+    <description>Hierarchy Multi-Select Set Action proof of concept</description>
+    <author name="Open-source community" organization="Community" website="https://github.com/bschabli/tableau-hierarchy-multiselect-filter"/>
+    <min-api-version>1.12</min-api-version>
+    <source-location>
+      <url>https://bschabli.github.io/tableau-hierarchy-multiselect-filter/Samples/Viz/HierarchyFilterPoC/index.html</url>
+    </source-location>
+    <icon/>
+    <encoding id="leaf">
+      <display-name>Leaf ID</display-name>
+      <role-spec><role-type>discrete-dimension</role-type></role-spec>
+      <fields max-count="1"/>
+    </encoding>
+    <encoding id="level">
+      <display-name>Hierarchiestufen</display-name>
+      <role-spec><role-type>discrete-dimension</role-type></role-spec>
+      <fields max-count="6"/>
+    </encoding>
+    <encoding id="membership">
+      <display-name>Set-Mitgliedschaft</display-name>
+      <role-spec><role-type>discrete-dimension</role-type></role-spec>
+      <fields max-count="1"/>
+    </encoding>
+  </worksheet-extension>
+  <resources>
+    <resource id="name"><text locale="en_US">Hierarchy Filter – Set PoC</text></resource>
+  </resources>
+</manifest>

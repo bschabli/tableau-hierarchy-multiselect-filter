@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau Hierarchy Filter – Set Action PoC</title>
+  <link rel="stylesheet" href="./filter.css">
+  <script src="../../../lib/tableau.extensions.1.latest.min.js"></script>
+  <script type="module" src="./filter.js"></script>
+</head>
+<body class="tableau-worksheet">
+  <h1>Hierarchy Multi-Select – PoC</h1>
+  <p class="note">Noch ohne Wunderbaum: Hier prüfen wir Set Actions und Dashboard-Rücksynchronisation.</p>
+  <div class="toolbar">
+    <button id="all" type="button">Modus: Alle</button>
+    <button id="none" type="button">Modus: Keine</button>
+    <button id="apply" type="button">Set-Auswahl anwenden</button>
+    <button id="reload" type="button">Set neu einlesen</button>
+  </div>
+  <p id="status" role="status">Initialisierung …</p>
+  <div class="metrics"><span id="count">—</span><span id="mode">—</span></div>
+  <section id="rows" aria-label="Leaf IDs"></section>
+  <p class="note">Alle/Keine ändern nur den Parameter. Checkboxen zeigen den Set-Zustand.</p>
+  <details><summary>Diagnoseprotokoll</summary><pre id="debug"></pre></details>
+</body>
+</html>

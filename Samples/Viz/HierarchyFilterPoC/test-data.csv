@@ -1,0 +1,21 @@
+leaf_id,level_0,level_1,level_2,value
+L001,Unternehmen,Nord,Produkt A,10
+L002,Unternehmen,Nord,Produkt B,11
+L003,Unternehmen,Nord,,12
+L004,Unternehmen,Sued,Produkt C,13
+L005,Unternehmen,Sued,Produkt D,14
+L006,Unternehmen,Sued,,15
+L007,Unternehmen,Ost,Produkt E,16
+L008,Unternehmen,Ost,Produkt F,17
+L009,Unternehmen,Ost,,18
+L010,Unternehmen,West,Produkt G,19
+L011,Unternehmen,West,Produkt H,20
+L012,Unternehmen,West,,21
+L013,Beteiligungen,Sparte A,Abteilung A,22
+L014,Beteiligungen,Sparte A,Abteilung B,23
+L015,Beteiligungen,Sparte A,,24
+L016,Beteiligungen,Sparte B,Abteilung C,25
+L017,Beteiligungen,Sparte B,Abteilung D,26
+L018,Beteiligungen,Sparte B,,27
+L019,Sonstige,,,28
+L020,Sonstige,Spezial,,29
