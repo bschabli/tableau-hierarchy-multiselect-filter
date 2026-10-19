@@ -6,8 +6,8 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 
 - Build a tree from the flat level encodings (including ragged hierarchies)
 - Hierarchical checkboxes with parent/child propagation and indeterminate state
-- Draft selection: checkbox edits and Alle/Keine are local until **Anwenden**
-- **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits
+- Draft selection: checkbox edits and Alle/Keine are local until **Anwenden**\n- **Keine** temporarily clears the checkboxes; applying an empty selection restores **ALLE** (no filter restriction, Set remains unchanged).
+- **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits\n- Expand/Collapse state and scroll position are preserved on Set refresh; rows use Wunderbaum's matching 32px virtual row height.
 - Tableau Set Actions via `selectTuplesAsync`
 - Read Set membership back from Tableau to restore selection
 

@@ -1,5 +1,5 @@
 import {TableauConnector} from './tableau-connector.js';
-import {buildHierarchy, selectedLeafIds} from './hierarchy.js';
+import {buildHierarchy, selectedLeafIds, getExpandedKeys} from './hierarchy.js';
 import {sameIds, effectiveSelection, hasPendingChanges} from './selection-state.js';
 
 const $ = id => document.getElementById(id);
@@ -44,13 +44,18 @@ function createTree() {
   }
   ignoreEvents = true;
   try {
+    // Recreating the tree on Set updates must not expand collapsed branches.
+    const expandedKeys = getExpandedKeys(tree);
+    const previousScroll = $('rows').scrollTop;
     tree?.destroy();
-    const {roots} = buildHierarchy(leaves, selected);
+    const {roots} = buildHierarchy(leaves, selected, expandedKeys);
     tree = new window.mar10.Wunderbaum({
       element: $('rows'),
       source: roots,
       checkbox: true,
       selectMode: 'hier',
+      rowHeightPx: 32,
+      minExpandLevel: 0,
       icon: false,
       iconMap: {
         ...window.mar10.Wunderbaum.iconMaps.bootstrap,
@@ -70,6 +75,12 @@ function createTree() {
         status('Auswahl geändert – noch nicht angewendet.');
       }
     });
+    // Wunderbaum virtualizes rows, therefore restore viewport after layout.
+    if (expandedKeys !== null) {
+      requestAnimationFrame(() => {
+        if (tree) $('rows').scrollTop = previousScroll;
+      });
+    }
   } finally {
     ignoreEvents = false;
   }
@@ -128,8 +139,10 @@ async function apply() {
   if (busy || !tree || !pending()) return;
   lock(true);
   try {
-    // Clearing all marks does not reliably clear a Tableau Set Action.
-    const targetMode = mode === 'AUSWAHL' && selected.size === 0 ? 'KEINE' : mode;
+    // No selected checkboxes = no filter restriction. Keep the Tableau Set
+    // unchanged and use ALLE, because clearing a Set Action is unreliable.
+    const resetToAll = mode === 'KEINE' || (mode === 'AUSWAHL' && selected.size === 0);
+    const targetMode = resetToAll ? 'ALLE' : mode;
     let writtenMarks = null;
     if (targetMode === 'AUSWAHL' && !sameIds(selected, appliedSetIds)) {
       writtenMarks = await connector.selectLeaves(selected, leaves);
@@ -141,8 +154,19 @@ async function apply() {
     appliedMode = targetMode;
     mode = targetMode;
     selected = effectiveSelection(mode, appliedSetIds, leaves);
+    if (resetToAll) {
+      // Match the visual checkboxes to the normalized no-filter state.
+      ignoreEvents = true;
+      try {
+        tree.selectAll(true);
+      } finally {
+        ignoreEvents = false;
+      }
+    }
     summary();
-    if (writtenMarks !== null) {
+    if (resetToAll) {
+      status('Keine Auswahl: Filter zurückgesetzt, alle Werte ausgewählt.');
+    } else if (writtenMarks !== null) {
       status(writtenMarks + ' Marks an Tableau übergeben. Die Set Action aktualisiert die Auswahl.');
     } else {
       status('Modus ' + mode + ' angewendet. Das Tableau Set blieb unverändert.');

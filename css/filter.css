@@ -82,3 +82,31 @@ div.wunderbaum span.wb-node i.wb-expander::before {
   background: #2768af;
   border-color: #2768af;
 }
+
+/* Use a taller Wunderbaum row (rowHeightPx: 32) for virtual scrolling.
+   Checkbox glyphs get their own vertical space, so no lower edge is clipped. */
+div.wunderbaum {
+  --wb-icon-outer-height: 26px;
+  --wb-icon-outer-width: 26px;
+  --wb-icon-padding-y: 0px;
+  --wb-icon-padding-x: 0px;
+}
+
+div.wunderbaum span.wb-node i.wb-checkbox,
+div.wunderbaum span.wb-node i.wb-expander {
+  display: inline-flex;
+  height: 26px;
+  width: 26px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+div.wunderbaum span.wb-node i.wb-checkbox::before {
+  width: 17px;
+  height: 17px;
+  line-height: 1;
+  flex-shrink: 0;
+}

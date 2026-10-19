@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {membership, rowToLeaf, readLeafSelection, validateLeaves} from '../js/core.js';
-import {buildHierarchy} from '../js/hierarchy.js';
+import {buildHierarchy, getExpandedKeys} from '../js/hierarchy.js';
 import {sameIds, effectiveSelection, hasPendingChanges} from '../js/selection-state.js';
 
 test('set membership', () => {
@@ -52,4 +52,37 @@ test('Mode changes remain pending until apply', () => {
 test('Set comparisons ignore order', () => {
   assert.equal(sameIds(new Set(['A','B']), new Set(['B','A'])), true);
   assert.equal(sameIds(new Set(['A']), new Set(['B'])), false);
+});
+
+test('preserve manually expanded and collapsed branches on refresh', () => {
+  const leaves = [
+    {id:'a',levels:['Dept A','Team 1']},
+    {id:'b',levels:['Dept A','Team 2']},
+    {id:'c',levels:['Dept B','Team 1']}
+  ];
+  const first = buildHierarchy(leaves);
+  const a = first.roots[0];
+  const b = first.roots[1];
+  assert.equal(a.expanded, true);
+  assert.equal(b.expanded, true);
+
+  // After the user collapses Dept A and expands Dept B / Team 1:
+  const keys = getExpandedKeys([
+    {key:a.key,expanded:false},
+    {key:b.key,expanded:true},
+    {key:b.children[0].key,expanded:true}
+  ]);
+  const refreshed = buildHierarchy(leaves, new Set(['c']), keys);
+  assert.equal(refreshed.roots[0].expanded, false);
+  assert.equal(refreshed.roots[1].expanded, true);
+  assert.equal(refreshed.roots[1].children[0].expanded, true);
+  assert.equal(refreshed.roots[0].children[0].expanded, false);
+  assert.equal(refreshed.leafByKey.get('l:c').selected, true);
+});
+
+test('an explicit empty expansion state preserves fully collapsed tree', () => {
+  const leaves = [{id:'a',levels:['A','B']}];
+  const refreshed = buildHierarchy(leaves, new Set(), new Set());
+  assert.equal(refreshed.roots[0].expanded, false);
+  assert.equal(refreshed.roots[0].children[0].expanded, false);
 });

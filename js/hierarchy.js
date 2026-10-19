@@ -1,5 +1,9 @@
 import {normalizeId} from './core.js';
-export function buildHierarchy(leaves, selectedIds = new Set()) {
+/**
+ * Optional expandedKeys overrides the initial expansion defaults.
+ * An empty Set explicitly means that the user collapsed every branch.
+ */
+export function buildHierarchy(leaves, selectedIds = new Set(), expandedKeys = null) {
   const roots = [], byPath = new Map(), leafByKey = new Map();
   for (const leaf of leaves) {
     let siblings = roots, parts = [];
@@ -9,7 +13,7 @@ export function buildHierarchy(leaves, selectedIds = new Set()) {
       const key = 'p:' + JSON.stringify(parts);
       let node = byPath.get(key);
       if (!node) {
-        node = {key, title:level, expanded:parts.length===1, children:[], folder:true};
+        node = {key, title:level, expanded:expandedKeys === null ? parts.length === 1 : expandedKeys.has(key), children:[], folder:true};
         byPath.set(key,node);
         siblings.push(node);
       }
@@ -29,4 +33,14 @@ export function selectedLeafIds(tree) {
     if (node.key?.startsWith('l:') && node.selected) ids.add(node.key.slice(2));
   }
   return ids;
+}
+
+/** Preserve the user's expanded/collapsed branches across Set refreshes. */
+export function getExpandedKeys(tree) {
+  if (!tree) return null;
+  const keys = new Set();
+  for (const node of tree) {
+    if (node.key?.startsWith('p:') && node.expanded) keys.add(node.key);
+  }
+  return keys;
 }
