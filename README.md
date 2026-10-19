@@ -1,97 +1,80 @@
-# Tableau Extensions API
-[![Tableau Supported](https://img.shields.io/badge/Support%20Level-Tableau%20Supported-53bd92.svg)](https://www.tableau.com/support-levels-it-and-developer-tools)
+# Tableau Hierarchy Multi-Select Filter
 
-![Image of Flex the T-Rex](./assets/flex.png)
+Open-source Viz Extension for Tableau, built with **Vanilla JavaScript** and a locally shipped Tableau Extensions API.
 
+> **Status:** Architecture proof of concept (PoC). The final Wunderbaum hierarchy is not yet implemented. We first validate Set Actions across dashboards.
 
-## Why the Tableau Extensions API?
+## Compact project structure
 
-The Extensions API lets you do more without leaving Tableau. Build Tableau dashboard and viz extensions that can interact and communicate with Tableau, and embed them directly in your workbooks.
+```text
+├── index.html                    # App entry point
+├── hierarchy_filter.trex         # Tableau Viz Extension manifest
+├── js/
+│   ├── app.js                    # Simple multi-select UI (replaceable with Wunderbaum)
+│   ├── tableau-connector.js      # Tableau API, paginated reads and selection
+│   ├── core.js                   # Stable IDs / IN-OUT parsing
+│   └── tableau.extensions.1.latest.min.js  # Local Tableau API
+├── css/filter.css
+├── test-data.csv
+├── tests/core.test.js
+├── package.json
+└── .github/workflows/pages.yml
+```
 
-* Build viz extensions to create new viz types that Tableau users can access through the worksheet Marks card.
+Layout and connector separation are inspired by [Matrix-Pro-Tableau](https://github.com/bschabli/Matrix-Pro-Tableau).
+The application does **not** reuse its pivot/matrix components. The originally evaluated official sample was [Samples/Viz/Sankey](https://github.com/tableau/extensions-api/tree/main/Samples/Viz/Sankey).
 
+## GitHub Pages
 
-    <img src="./assets/sm_sankey.png" width="200" height="100">
+For this repository enable **Settings → Pages → Source: GitHub Actions**. Then push to `main`.
 
+- Extension UI: https://bschabli.github.io/tableau-hierarchy-multiselect-filter/index.html
+- Tableau manifest: https://bschabli.github.io/tableau-hierarchy-multiselect-filter/hierarchy_filter.trex
 
-* Build dashboard extensions to add new features and functionality to Tableau that users can access through the dashboard.
+GitHub Pages serves the files; opening the HTML alone outside Tableau cannot initialize a Viz Extension.
 
-    <img src="./Tutorial/Dashboard/assets/Part_3.gif" width="200" height="100">
+## Tableau PoC setup
 
+1. Load [test-data.csv](test-data.csv) into Tableau (20 example leaf IDs).
+2. Create a Tableau **set** of `[leaf_id]` named `s.filter_auswahl`. Initialize with `L002` and `L005`.
+3. Create a **string parameter** `p.filter_modus` with the values `ALLE`, `AUSWAHL`, `KEINE`; default `AUSWAHL`.
+4. Add the calculated Boolean field `cf.filter_aktiv`:
 
-## Setup and Running Samples
+   ```tableau
+   IF [p.filter_modus] = 'ALLE' THEN TRUE
+   ELSEIF [p.filter_modus] = 'KEINE' THEN FALSE
+   ELSE [s.filter_auswahl]
+   END
+   ```
 
-### Prerequisites
+5. Add a Viz Extension worksheet on **each of two dashboards**, loaded from `hierarchy_filter.trex` (download it locally before choosing it in Tableau).
+6. Fill its encoding shelves:
+   - **Leaf ID**: `[leaf_id]`
+   - **Hierarchiestufen**: `[level_0]`, `[level_1]`, `[level_2]` (optional for PoC)
+   - **Set-Mitgliedschaft**: `[s.filter_auswahl]` (IN/OUT)
+7. Add a target worksheet to **both** dashboards and filter it by `[cf.filter_aktiv] = TRUE`. Never place this filter on the Viz Extension selector sheets.
+8. On **each dashboard**, create a **Set Action**: source = its Viz Extension worksheet, run on **Select**, target = same `s.filter_auswahl`, action = **Assign values to set**, clearing selection = **Keep set values**.
+9. Select multiple checkboxes, click **Set neu einlesen**, then switch to the other dashboard. Repeat in both directions.
+10. Validate in Tableau Desktop, Server, and Cloud before extending the UI.
 
-* You must have Node.js and npm installed. You can get these from [https://nodejs.org](https://nodejs.org).
+**Limitations:** This PoC requires exactly one selectable mark per leaf ID. Set Actions are asynchronous, and completion of `selectTuplesAsync` does not confirm the set was updated. Empty mark selections do not reliably clear a set; the separate `KEINE` mode handles this. Sets are data-source scoped. Performance with 15,000 leaves is not yet proven.
 
-### Install Extensions API SDK Components and Start Server
+## Development
 
-1. Open a command prompt window to the location where you cloned this repo.
+```sh
+python -m http.server 8765
+npm test
+```
 
-2. Install the Extensions API SDK components.
+For localhost use a temporary copy of `hierarchy_filter.trex` with URL `http://localhost:8765/index.html`.
 
-    **npm install**
+## Roadmap
 
-3. Build the TypeScript samples and install the Extensions API types library.
+1. Verify workbook-wide Set Action + parameter roundtrip across dashboards.
+2. Integrate Wunderbaum (hierarchical checkbox and indeterminate state).
+3. Implement ragged hierarchies and stable path identities.
+4. Optimize caching, rendering, and Tableau selections for 15,000+ leaf IDs.
 
-   **npm run build**
+## License
 
-4. Start the local Dashboard Extension server.
-
-   **npm start**
-
-5. Launch Tableau and try a dashboard sample extension in a dashboard, or a viz extension in a worksheet. The dashboard and viz extension samples are located in the `Samples` folder.
-
- >**Note** The local web server you start just serves to host the extension samples and tutorial. These extensions have URLs similar to the following: `http://localhost:8765/Samples/Dashboard/DataSources/datasources.html`.
- >   This local web server is not intended to serve the Extensions API Help pages.
- >   View the Help on GitHub at [https://tableau.github.io/extensions-api](https://tableau.github.io/extensions-api).
-
-### Typescript Development
-
-Samples written in Typescript are located in the `Samples-Typescript` folder.
-If you want to use TypeScript to write your extensions, you can run a script that starts up the HTTP server and actively listens for changes to the `.ts` files located in the `Samples-Typescript` folder. You can then add your extension to the folder and use the script to transpile your extension to JavaScript.
-
-* To start the the HTTP server and listen for changes to the `.ts` files.
-
-    **npm run dev**
-
-* To automatically build the TypeScript samples whenever code change.
-
-   **npm run build-watch**
-
-For more information, see [Use TypeScript with the Extensions API](https://tableau.github.io/extensions-api/docs/core/trex_typescript).
-
-#### Typescript Development in PdfViewer Sample
-
-* To run tests for the PdfViewer sample.
-
-    **npm run test**
-
-* To automatically run tests for the PdfViewer sample whenever code changes.
-
-    **npm run test-watch**
-
-* To run test code coverage for the PdfViewer sample.
-
-    **npm run test-coverage**
-
-### Sandboxed Extension Development Environment
-
-Tableau is introducing development support for Sandboxed Extensions with Tableau 2019.3. Sandboxed Extensions run in a virtual sandbox and ensure the extension can’t make network calls outside of the hosting Tableau Server. The Extensions API SDK provides a local development environment that replicates the Tableau Hosting Cloud Service for Sandboxed Extensions. You can test your Sandboxed extensions locally with the same sandbox policies.
-
-1. Start the local Sandboxed Extension web server.
-
-    **npm run start-sandbox**
-
-2. Launch Tableau (Tableau 2019.3 and later) and try the sample Sandboxed dashboard extension in a dashboard. You can find the `.trex` file and sample code in the `Samples\Dashboard\UINamespace-sandboxed` folder.
-
-For more information, see [Create and Test Sandboxed Extensions](https://tableau.github.io/extensions-api/docs/security/trex_sandbox_test).
-
-## Code Style
-Our sample code follows the [Semi-Standard Style](https://github.com/Flet/semistandard) for JavaScript samples linting and [tslint](https://palantir.github.io/tslint/) for TypeScript.  If you add your own extension code to the Samples or Samples-Typescript directories, you can run `npm run lint` to validate the style of your code. Please run this command before submitting any pull requests for Sample code.
-
-`npx semistandard --fix` to fix linting issues which can be fixed automatically.
-
-## Documentation
-[Visit the project website and read the documentation here.](https://tableau.github.io/extensions-api/)
+Apache-2.0 (see LICENSE.txt), preserving applicable upstream notices and copyrights.
