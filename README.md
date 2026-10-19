@@ -6,14 +6,16 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 
 - Build a tree from the flat level encodings (including ragged hierarchies)
 - Hierarchical checkboxes with parent/child propagation and indeterminate state
-- Draft selection: checkbox edits and Alle/Keine are local until **Anwenden**\n- **Keine** temporarily clears the checkboxes; applying an empty selection restores **ALLE** (no filter restriction, Set remains unchanged).
-- **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits\n- Expand/Collapse state and scroll position are preserved on Set refresh; rows use Wunderbaum's matching 32px virtual row height.
+- Draft selection: checkbox edits and Alle/Keine are local until **Anwenden**
+- **Keine** temporarily clears the checkboxes; applying an empty selection restores **ALLE** (no filter restriction, Set remains unchanged).
+- **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits
+- Expand/Collapse state and scroll position are preserved on Set refresh; rows use Wunderbaum's matching 32px virtual row height.
 - Tableau Set Actions via `selectTuplesAsync`
 - Read Set membership back from Tableau to restore selection
 
 ## Pro Filterinstanz konfigurieren
 
-Mit **Konfigurieren** (oder dem Tableau-Kontextmenü **Configure**) einen Tableau-Zeichenfolge-Parameter mit den Werten `ALLE`, `AUSWAHL`, `KEINE` auswählen und eine Bezeichnung vergeben. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Für jede Dimension sollte ein eigener Parameter verwendet werden; das Tableau Set wird weiterhin über die Marks-Karte verbunden.
+Über **Format Extension** in der Tableau-Marks-Karte einen Tableau-Zeichenfolge-Parameter mit den Werten `ALLE`, `AUSWAHL`, `KEINE` auswählen. Die Filterbezeichnung ist optional und kann per Checkbox eingeblendet werden. Parameter können aus Vorschlägen gewählt oder namentlich eingegeben werden. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Für jede Dimension sollte ein eigener Parameter verwendet werden; das Tableau Set wird weiterhin über die Marks-Karte verbunden.
 
 ## Install
 

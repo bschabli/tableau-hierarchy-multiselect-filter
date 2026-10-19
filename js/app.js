@@ -20,6 +20,14 @@ let ignoreEvents = false;
 let refreshTimer = null;
 let configured = false;
 
+function updateOptionalTitle() {
+  const show=tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true';
+  $('filter-title').textContent=normalizeFilterTitle(
+    tableau.extensions.settings.get(SETTINGS_KEYS.title)
+  );
+  $('heading').hidden=!show;
+}
+
 function pending() {
   return hasPendingChanges(mode, selected, appliedMode, appliedSetIds, leaves);
 }
@@ -193,6 +201,7 @@ async function configure() {
     const payload = {
       parameterName: tableau.extensions.settings.get(SETTINGS_KEYS.parameter) || '',
       title: tableau.extensions.settings.get(SETTINGS_KEYS.title) || '',
+      showTitle: tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true',
       parameters: await connector.listModeParameters()
     };
     const response = await tableau.extensions.ui.displayDialogAsync(
@@ -205,9 +214,10 @@ async function configure() {
     await connector.chooseParameter(next.parameterName);
     // Save only after the candidate parameter has passed validation.
     tableau.extensions.settings.set(SETTINGS_KEYS.parameter, next.parameterName);
-    tableau.extensions.settings.set(SETTINGS_KEYS.title, normalizeFilterTitle(next.title));
+    tableau.extensions.settings.set(SETTINGS_KEYS.title, String(next.title??'').trim().slice(0,80));
+    tableau.extensions.settings.set(SETTINGS_KEYS.showTitle, String(next.showTitle===true));
     await tableau.extensions.settings.saveAsync();
-    $('filter-title').textContent = normalizeFilterTitle(next.title);
+    updateOptionalTitle();
     configured = true;
     mode = connector.mode;
     selected = new Set();
@@ -222,8 +232,8 @@ async function configure() {
   }
 }
 
-$('configure').addEventListener('click', configure);
-
+// In a Viz Extension, Tableau exposes configure via "Format Extension" on
+// the Marks card. No configuration button is rendered in the filter itself.
 async function start() {
   window.__hierarchyAppStarted = true;
   status('Verbinde mit Tableau ...');
@@ -235,13 +245,11 @@ async function start() {
       new Promise((_, reject) => setTimeout(
         () => reject(new Error('Tableau antwortet seit 15 Sekunden nicht.')), 15000))
     ]);
-    $('filter-title').textContent = normalizeFilterTitle(
-      tableau.extensions.settings.get(SETTINGS_KEYS.title)
-    );
+    updateOptionalTitle();
     configured = initialMode !== null;
     if(!configured) {
       status(connector.configurationError ||
-        'Noch nicht konfiguriert: Bitte über „Konfigurieren“ einen Tableau-Modusparameter wählen.');
+        'Noch nicht konfiguriert: „Format Extension“ in der Tableau-Marks-Karte öffnen und Modusparameter wählen.');
       summary();
       return;
     }

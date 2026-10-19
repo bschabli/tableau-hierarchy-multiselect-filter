@@ -41,9 +41,17 @@ export class TableauConnector {
 
   async chooseParameter(name) {
     const normalized=String(name??'').trim();
-    const parameters=await this.worksheet.getParametersAsync();
-    const candidate=parameters.find(p=>p.name===normalized);
-    if(!candidate) throw new Error('Tableau-Parameter "'+normalized+'" nicht gefunden.');
+    // A parameter can be absent from the available-parameters list.
+    // Resolve explicitly by name before falling back to the collection.
+    let candidate=null;
+    if(typeof this.worksheet.findParameterAsync==='function') {
+      candidate=await this.worksheet.findParameterAsync(normalized);
+    }
+    if(!candidate) {
+      const parameters=await this.worksheet.getParametersAsync();
+      candidate=parameters.find(p=>p.name===normalized);
+    }
+    if(!candidate) throw new Error('Tableau-Parameter "'+normalized+'" nicht gefunden. Falls er neu angelegt wurde, verwende ihn zunächst in einem berechneten Feld im Workbook.');
     const option=parameterOption(candidate);
     if(!option.valid) throw new Error('Parameter "'+normalized+'" ist ungeeignet: '+option.reason);
     if(this.parameter&&this.parameterHandler) {

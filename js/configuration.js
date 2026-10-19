@@ -2,15 +2,24 @@
 export const MODE_VALUES = ['ALLE','AUSWAHL','KEINE'];
 export const SETTINGS_KEYS = Object.freeze({
   parameter: 'hierarchyFilter.modeParameter',
-  title: 'hierarchyFilter.title'
+  title: 'hierarchyFilter.title',
+  showTitle: 'hierarchyFilter.showTitle'
 });
 export function parameterOption(parameter) {
   const name=String(parameter?.name??'');
+  const dataType=String(parameter?.dataType??'').toLowerCase();
   const current=parameter?.currentValue?.value;
-  if(typeof current!=='string') return {name,valid:false,reason:'Kein Zeichenfolge-Parameter'};
+  if(dataType && dataType!=='string') {
+    return {name,valid:false,reason:'Kein Zeichenfolge-Parameter'};
+  }
+  if(!dataType && typeof current!=='string') {
+    return {name,valid:false,reason:'Kein Zeichenfolge-Parameter'};
+  }
   const list=parameter?.allowableValues?.allowableValues;
   if(Array.isArray(list)) {
-    const allowed=new Set(list.map(v=>String(v?.value??'')));
+    const allowed=new Set(list.flatMap(v=>[
+      String(v?.value??''), String(v?.formattedValue??'')
+    ]));
     const missing=MODE_VALUES.filter(v=>!allowed.has(v));
     if(missing.length) return {name,valid:false,reason:'Fehlende Werte: '+missing.join(', ')};
   }

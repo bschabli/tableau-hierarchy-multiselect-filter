@@ -13,3 +13,9 @@ input:focus,select:focus{outline:2px solid #81b5ee;outline-offset:1px}
 button{font:inherit;font-size:13px;padding:8px 15px;cursor:pointer;border:1px solid #2565ae;border-radius:4px;background:#2565ae;color:white}
 button.secondary{color:#304358;background:#f4f6f8;border-color:#b6c4d1}
 button:disabled{opacity:.5;cursor:default}
+
+input[list] { width: 100%; }
+.checkbox-label { display: flex; align-items: center; gap: 9px; margin-top: 7px; }
+.checkbox-label input { width: auto; margin: 0; }
+input:disabled { background: #eff2f6; color: #6d7b89; }
+#parameter-hint { min-height: 16px; }

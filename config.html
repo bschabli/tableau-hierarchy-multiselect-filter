@@ -1,22 +1,36 @@
 <!doctype html>
-<html lang="de"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hierarchiefilter konfigurieren</title>
-<link rel="stylesheet" href="./css/config.css">
-<script src="./js/tableau.extensions.1.latest.min.js"></script>
-<script defer type="module" src="./js/config-dialog.js"></script>
-</head><body>
-<h1>Hierarchiefilter konfigurieren</h1>
-<p class="intro">Diese Einstellungen gelten nur für die aktuelle Filter-Instanz im Workbook.</p>
-<form id="config-form">
-<label for="filter-title">Filterbezeichnung</label>
-<input id="filter-title" type="text" maxlength="80" placeholder="z. B. Kostenstelle">
-<label for="mode-parameter">Tableau-Modusparameter</label>
-<select id="mode-parameter" required><option value="">Bitte wählen …</option></select>
-<p class="hint">Der Zeichenfolge-Parameter muss die Werte ALLE, AUSWAHL und KEINE zulassen.</p>
-<p id="config-status" class="hint" role="status"></p>
-<div class="actions">
-<button type="button" id="cancel" class="secondary">Abbrechen</button>
-<button type="submit" id="save">Speichern</button>
-</div>
-</form></body></html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hierarchiefilter konfigurieren</title>
+  <link rel="stylesheet" href="./css/config.css">
+  <script src="./js/tableau.extensions.1.latest.min.js"></script>
+  <script defer type="module" src="./js/config-dialog.js"></script>
+</head>
+<body>
+  <h1>Hierarchiefilter konfigurieren</h1>
+  <p class="intro">Diese Einstellungen gelten für diese Filterinstanz im Tableau-Workbook.</p>
+  <form id="config-form">
+    <label for="mode-parameter">Tableau-Modusparameter</label>
+    <input id="mode-parameter" list="mode-parameter-options" type="text"
+      autocomplete="off" spellcheck="false" required
+      placeholder="Parameter auswählen oder Namen eingeben">
+    <datalist id="mode-parameter-options"></datalist>
+    <p class="hint">Wähle einen Vorschlag oder gib den Namen eines Parameters ein, der die Werte ALLE, AUSWAHL und KEINE unterstützt.</p>
+    <p id="parameter-hint" class="hint" role="status"></p>
+
+    <label class="checkbox-label" for="show-title">
+      <input id="show-title" type="checkbox"> Titel in der Extension anzeigen
+    </label>
+    <label for="filter-title">Titel (optional)</label>
+    <input id="filter-title" type="text" maxlength="80" placeholder="z. B. Kostenstelle">
+
+    <p id="config-status" class="hint" role="status"></p>
+    <div class="actions">
+      <button type="button" id="cancel" class="secondary">Abbrechen</button>
+      <button type="submit" id="save">Speichern</button>
+    </div>
+  </form>
+</body>
+</html>
