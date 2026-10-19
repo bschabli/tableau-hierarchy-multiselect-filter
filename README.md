@@ -13,6 +13,28 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Tableau Set Actions via `selectTuplesAsync`
 - Read Set membership back from Tableau to restore selection
 
+## Format Extension – wichtig: `.trex` erneut laden
+
+Die Konfiguration erscheint als **Format Extension** auf der **Marks-Karte des
+Viz-Extension-Arbeitsblatts** (nicht im Dashboard-Objekt-Menü).
+Tableau übernimmt Manifeständerungen nicht durch einen einfachen Webview-Reload.
+Gehe auf **Worksheet → Manage Viz Extensions**, entferne die zuvor importierte
+Version und füge die aktuelle `hierarchy_filter.trex` über die Marks-Karte
+(**Viz Extensions → Add Extension → Access Local Viz Extensions**) erneut hinzu.
+Ordne anschließend die Marks-Shelves wieder zu und prüfe die Set Action.
+Der Manifeststand ist jetzt **0.2.0**.
+
+Solange kein Modusparameter gespeichert ist, wird der Konfigurationsdialog beim
+ersten Laden einmalig angeboten. Danach wird er über **Format Extension** geöffnet.
+
+**Modusauswahl:** Im Filter ist ein Dropdown **Alle / Auswahl / Keine** sichtbar.
+Die Änderung bleibt lokal bis **Anwenden**. Auf ausdrücklichen Wunsch gilt weiterhin:
+**Keine + Anwenden** setzt den Filter auf **Alle** zurück.
+
+**Hierarchie:** Die unterste ausgefüllte Ebene ist der letzte sichtbare Knoten.
+Die Leaf ID ist ausschließlich der eindeutige technische Schlüssel; sie wird
+nicht als zusätzliche Hierarchieebene angezeigt.
+
 ## Pro Filterinstanz konfigurieren
 
 Über **Format Extension** in der Tableau-Marks-Karte einen Tableau-Zeichenfolge-Parameter mit den Werten `ALLE`, `AUSWAHL`, `KEINE` auswählen. Die Filterbezeichnung ist optional und kann per Checkbox eingeblendet werden. Parameter können aus Vorschlägen gewählt oder namentlich eingegeben werden. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Für jede Dimension sollte ein eigener Parameter verwendet werden; das Tableau Set wird weiterhin über die Marks-Karte verbunden.

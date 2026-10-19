@@ -14,8 +14,14 @@
 <body class="tableau-worksheet">
   <div class="heading" id="heading" hidden><strong id="filter-title">Hierarchiefilter</strong></div>
   <div class="toolbar">
-    <button id="all" type="button">Alle</button>
-    <button id="none" type="button">Keine</button>
+    <label class="mode-picker" for="mode-select">
+      <span>Modus</span>
+      <select id="mode-select" aria-label="Filtermodus" disabled>
+        <option value="ALLE">Alle</option>
+        <option value="AUSWAHL">Auswahl</option>
+        <option value="KEINE">Keine</option>
+      </select>
+    </label>
     <button id="apply" type="button" disabled>Anwenden</button>
     <button id="reload" type="button" title="Liest den Tableau-Zustand erneut ein und verwirft lokale Änderungen.">Neu einlesen</button>
   </div>

@@ -19,6 +19,7 @@ let busy = false;
 let ignoreEvents = false;
 let refreshTimer = null;
 let configured = false;
+let lastExplicitSelection = new Set();
 
 function updateOptionalTitle() {
   const show=tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true';
@@ -35,17 +36,17 @@ function pending() {
 function summary() {
   const changed = pending();
   $('count').textContent = selected.size + ' / ' + leaves.length + ' Leaf-IDs';
-  $('mode').textContent = 'Modus: ' + mode + (changed ? ' · Entwurf' : '');
-  $('apply').disabled = busy || !changed;
+  $('mode').textContent = 'Aktiv: ' + appliedMode + (changed ? ' · Entwurf' : '');
+  $('mode-select').value = mode;
+  $('mode-select').disabled = !configured || busy;
   $('reload').textContent = changed ? 'Änderungen verwerfen' : 'Neu einlesen';
   $('pending').hidden = !changed;
   $('apply').disabled = !configured || busy || !changed;
-  for(const id of ['all','none']) $(id).disabled = busy || !configured;
 }
 
 function lock(value) {
   busy = value;
-  for (const id of ['all', 'none', 'reload']) $(id).disabled = value;
+  $('reload').disabled = value;
   tree?.setEnabled(!value);
   summary();
 }
@@ -82,6 +83,7 @@ function createTree() {
       select: () => {
         if (ignoreEvents || busy) return;
         selected = selectedLeafIds(tree);
+        lastExplicitSelection = new Set(selected);
         mode = 'AUSWAHL';
         summary();
         status('Auswahl geändert – noch nicht angewendet.');
@@ -124,6 +126,7 @@ async function reload(force = false) {
     appliedMode = snapshot.mode;
     mode = snapshot.mode;
     selected = effectiveSelection(mode, appliedSetIds, leaves);
+    lastExplicitSelection = new Set(appliedSetIds);
     createTree();
     status('Aus Tableau gelesen: ' + leaves.length + ' Leaf-IDs; Modus ' + mode + '.');
   } catch (error) {
@@ -134,17 +137,28 @@ async function reload(force = false) {
 }
 
 function stageMode(nextMode) {
-  if (!configured || busy || !tree) return;
+  if (!configured || busy || !tree ||
+      !['ALLE', 'AUSWAHL', 'KEINE'].includes(nextMode)) return;
+  if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
   ignoreEvents = true;
   try {
-    tree.selectAll(nextMode === 'ALLE');
-    selected = effectiveSelection(nextMode, appliedSetIds, leaves);
     mode = nextMode;
+    if (nextMode === 'AUSWAHL') {
+      selected = new Set(lastExplicitSelection);
+      // Rebuild the checkbox states without losing the expanded nodes.
+      createTree();
+    } else {
+      const all = nextMode === 'ALLE';
+      tree.selectAll(all);
+      selected = all ? new Set(leaves.map(leaf => leaf.id)) : new Set();
+    }
   } finally {
     ignoreEvents = false;
   }
   summary();
-  status('Modus ' + nextMode + ' vorgemerkt – noch nicht angewendet.');
+  status(nextMode === 'KEINE'
+    ? 'Keine vorgemerkt. Anwenden setzt den Filter auf Alle zurück.'
+    : 'Modus ' + nextMode + ' vorgemerkt – noch nicht angewendet.');
 }
 
 async function apply() {
@@ -166,6 +180,7 @@ async function apply() {
     appliedMode = targetMode;
     mode = targetMode;
     selected = effectiveSelection(mode, appliedSetIds, leaves);
+    if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
     if (resetToAll) {
       // Match the visual checkboxes to the normalized no-filter state.
       ignoreEvents = true;
@@ -192,8 +207,7 @@ async function apply() {
 
 $('apply').addEventListener('click', apply);
 $('reload').addEventListener('click', () => reload(true));
-$('all').addEventListener('click', () => stageMode('ALLE'));
-$('none').addEventListener('click', () => stageMode('KEINE'));
+$('mode-select').addEventListener('change', event => stageMode(event.target.value));
 
 async function configure() {
   if (busy) return;
@@ -202,7 +216,10 @@ async function configure() {
       parameterName: tableau.extensions.settings.get(SETTINGS_KEYS.parameter) || '',
       title: tableau.extensions.settings.get(SETTINGS_KEYS.title) || '',
       showTitle: tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true',
-      parameters: await connector.listModeParameters()
+      parameters: await connector.listModeParameters().catch(error => {
+        console.warn('[Hierarchy Filter] Parametervorschläge nicht verfügbar:', error);
+        return [];
+      })
     };
     const response = await tableau.extensions.ui.displayDialogAsync(
       new URL('./config.html', window.location.href).href,
@@ -249,8 +266,14 @@ async function start() {
     configured = initialMode !== null;
     if(!configured) {
       status(connector.configurationError ||
-        'Noch nicht konfiguriert: „Format Extension“ in der Tableau-Marks-Karte öffnen und Modusparameter wählen.');
+        'Noch nicht konfiguriert. Öffne den Einstellungsdialog …');
       summary();
+      // First-run fallback: no permanent configuration button in the viz.
+      await configure();
+      if (!configured) {
+        status('Konfiguration erforderlich: In der Marks-Karte „Format Extension“ wählen. ' +
+          'Wenn die Schaltfläche fehlt, die Extension mit der neuen .trex-Datei erneut hinzufügen.');
+      }
       return;
     }
     mode = initialMode;

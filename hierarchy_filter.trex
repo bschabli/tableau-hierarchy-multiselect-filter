@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest manifest-version="0.1" xmlns="http://www.tableau.com/xml/extension_manifest">
-  <worksheet-extension id="io.github.bschabli.tableau.hierarchy.filter.poc" extension-version="0.1.0">
+  <worksheet-extension id="io.github.bschabli.tableau.hierarchy.filter.poc" extension-version="0.2.0">
     <default-locale>en_US</default-locale>
     <name resource-id="name"/>
-    <description>Hierarchy Multi-Select Set Action proof of concept</description>
+    <description>Hierarchical multi-select filter with per-instance Tableau configuration</description>
     <author name="Open-source community" email="test@mail.com" organization="Community" website="https://github.com/bschabli/tableau-hierarchy-multiselect-filter"/>
     <min-api-version>1.12</min-api-version>
     <source-location>
@@ -28,6 +28,6 @@
     </encoding>
   </worksheet-extension>
   <resources>
-    <resource id="name"><text locale="en_US">Hierarchy Filter – Set PoC</text></resource>
+    <resource id="name"><text locale="en_US">Hierarchy Multi-Select Filter</text></resource>
   </resources>
 </manifest>
