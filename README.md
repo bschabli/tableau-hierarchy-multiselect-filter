@@ -7,7 +7,7 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Build a tree from the flat level encodings (including ragged hierarchies)
 - Hierarchical checkboxes with parent/child propagation and indeterminate state
 - Draft selection: checkbox edits and Alle/Keine are local until **Anwenden**
-- **Keine** temporarily clears the checkboxes; applying an empty selection restores **ALLE** (no filter restriction, Set remains unchanged).
+- **Keine** clears the checkboxes; **Anwenden** writes **all values into the Tableau Set** and switches the parameter to **ALLE**, while **the checkboxes stay empty**.
 - **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits
 - Expand/Collapse state and scroll position are preserved on Set refresh; rows use Wunderbaum's matching 32px virtual row height.
 - Tableau Set Actions via `selectTuplesAsync`
@@ -29,7 +29,7 @@ ersten Laden einmalig angeboten. Danach wird er über **Format Extension** geöf
 
 **Modusauswahl:** Im Filter ist ein Dropdown **Alle / Auswahl / Keine** sichtbar.
 Die Änderung bleibt lokal bis **Anwenden**. Auf ausdrücklichen Wunsch gilt weiterhin:
-**Keine + Anwenden** setzt den Filter auf **Alle** zurück.
+**Keine + Anwenden** schreibt **alle Werte ins Tableau Set** und setzt den Modus auf **Alle** zurück. Die Checkboxen bleiben dabei leer.
 
 **Hierarchie:** Die unterste ausgefüllte Ebene ist der letzte sichtbare Knoten.
 Die Leaf ID ist ausschließlich der eindeutige technische Schlüssel; sie wird
@@ -55,7 +55,7 @@ Do not filter the extension's own data to the selected set.
 
 ## Important caveat
 
-The initial Wunderbaum implementation is a prototype. Performance at 15,000 leaves, Dashboard/Cloud behavior, and complex cases with large multiselections are not yet verified. It still sends one Tableau tuple per leaf, and the distinct empty selection is represented by parameter `KEINE`.
+The initial Wunderbaum implementation is a prototype. Performance at 15,000 leaves, Dashboard/Cloud behavior, and complex cases with large multiselections are not yet verified. The app selects Tableau tuples for each required Set update. An empty visible selection is represented by `ALLE` together with all values inside the Tableau Set; visually the checkboxes remain unchecked. For larger hierarchies, selecting all tuples may have a performance cost.
 
 ## Files
 

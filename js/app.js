@@ -1,6 +1,6 @@
 import {TableauConnector} from './tableau-connector.js';
 import {buildHierarchy, selectedLeafIds, getExpandedKeys} from './hierarchy.js';
-import {sameIds, effectiveSelection, hasPendingChanges} from './selection-state.js';
+import {sameIds, effectiveSelection, resolveApplyState, hasPendingChanges} from './selection-state.js';
 import {SETTINGS_KEYS, normalizeFilterTitle} from './configuration.js';
 
 const $ = id => document.getElementById(id);
@@ -35,8 +35,10 @@ function pending() {
 
 function summary() {
   const changed = pending();
-  $('count').textContent = selected.size + ' / ' + leaves.length + ' Leaf-IDs';
-  $('mode').textContent = 'Aktiv: ' + appliedMode + (changed ? ' · Entwurf' : '');
+  $('count').textContent = selected.size + ' von ' + leaves.length + ' ausgewählt';
+  const modeNames = {ALLE: 'Alle', AUSWAHL: 'Auswahl', KEINE: 'Keine'};
+  $('mode').textContent = 'Aktiv: ' + (modeNames[appliedMode] ?? appliedMode)
+    + (changed ? ' · noch nicht angewendet' : '');
   $('mode-select').value = mode;
   $('mode-select').disabled = !configured || busy;
   $('reload').textContent = changed ? 'Änderungen verwerfen' : 'Neu einlesen';
@@ -125,10 +127,13 @@ async function reload(force = false) {
     appliedSetIds = new Set(snapshot.selectedIds);
     appliedMode = snapshot.mode;
     mode = snapshot.mode;
-    selected = effectiveSelection(mode, appliedSetIds, leaves);
-    lastExplicitSelection = new Set(appliedSetIds);
+    selected = effectiveSelection(mode, appliedSetIds);
+    // An unfiltered workbook can have all members in the Tableau Set
+    // without any checkbox being checked. Do not copy those IDs into
+    // the user's last explicit selection.
+    if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
     createTree();
-    status('Aus Tableau gelesen: ' + leaves.length + ' Leaf-IDs; Modus ' + mode + '.');
+    status('Auswahl aktualisiert.');
   } catch (error) {
     status('Lesefehler: ' + error.message, true);
   } finally {
@@ -149,54 +154,56 @@ function stageMode(nextMode) {
       createTree();
     } else {
       const all = nextMode === 'ALLE';
-      tree.selectAll(all);
-      selected = all ? new Set(leaves.map(leaf => leaf.id)) : new Set();
+      // Neither ALLE nor KEINE should display checked boxes.
+      tree.selectAll(false);
+      selected = new Set();
     }
   } finally {
     ignoreEvents = false;
   }
   summary();
   status(nextMode === 'KEINE'
-    ? 'Keine vorgemerkt. Anwenden setzt den Filter auf Alle zurück.'
-    : 'Modus ' + nextMode + ' vorgemerkt – noch nicht angewendet.');
+    ? 'Keine Auswahl vorgemerkt. Beim Anwenden werden alle Werte berücksichtigt.'
+    : 'Modus geändert – noch nicht angewendet.');
 }
 
 async function apply() {
   if (!configured || busy || !tree || !pending()) return;
   lock(true);
   try {
-    // No selected checkboxes = no filter restriction. Keep the Tableau Set
-    // unchanged and use ALLE, because clearing a Set Action is unreliable.
-    const resetToAll = mode === 'KEINE' || (mode === 'AUSWAHL' && selected.size === 0);
-    const targetMode = resetToAll ? 'ALLE' : mode;
+    const intended = resolveApplyState(mode, selected, leaves);
     let writtenMarks = null;
-    if (targetMode === 'AUSWAHL' && !sameIds(selected, appliedSetIds)) {
-      writtenMarks = await connector.selectLeaves(selected, leaves);
-      appliedSetIds = new Set(selected); // Until Tableau's next data event.
+
+    // Important: an empty displayed selection means all items must be
+    // IN the Tableau Set, not that all checkboxes become checked.
+    if (!sameIds(intended.setIds, appliedSetIds)) {
+      writtenMarks = await connector.selectLeaves(intended.setIds, leaves);
+      appliedSetIds = new Set(intended.setIds);
     }
-    if (targetMode !== appliedMode) {
-      await connector.changeMode(targetMode);
+    if (intended.mode !== appliedMode) {
+      await connector.changeMode(intended.mode);
     }
-    appliedMode = targetMode;
-    mode = targetMode;
-    selected = effectiveSelection(mode, appliedSetIds, leaves);
+    appliedMode = intended.mode;
+    mode = intended.mode;
+    selected = new Set(intended.checkedIds);
+
     if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
-    if (resetToAll) {
-      // Match the visual checkboxes to the normalized no-filter state.
-      ignoreEvents = true;
-      try {
-        tree.selectAll(true);
-      } finally {
-        ignoreEvents = false;
+    // Keep the checkbox state accurate even when the full Tableau Set is selected.
+    ignoreEvents = true;
+    try {
+      if (mode === 'ALLE') {
+        tree.selectAll(false);
       }
+    } finally {
+      ignoreEvents = false;
     }
     summary();
-    if (resetToAll) {
-      status('Keine Auswahl: Filter zurückgesetzt, alle Werte ausgewählt.');
+    if (mode === 'ALLE') {
+      status('Filter zurückgesetzt – alle Werte werden berücksichtigt.');
     } else if (writtenMarks !== null) {
-      status(writtenMarks + ' Marks an Tableau übergeben. Die Set Action aktualisiert die Auswahl.');
+      status(selected.size + ' Werte ausgewählt und angewendet.');
     } else {
-      status('Modus ' + mode + ' angewendet. Das Tableau Set blieb unverändert.');
+      status('Auswahl angewendet.');
     }
   } catch (error) {
     status('Anwenden fehlgeschlagen: ' + error.message, true);
