@@ -6,6 +6,7 @@
     <description>Hierarchy Multi-Select Set Action proof of concept</description>
     <author name="Open-source community" email="test@mail.com" organization="Community" website="https://github.com/bschabli/tableau-hierarchy-multiselect-filter"/>
     <min-api-version>1.12</min-api-version>
+    <context-menu><configure-context-menu-item /></context-menu>
     <source-location>
       <url>https://bschabli.github.io/tableau-hierarchy-multiselect-filter/index.html</url>
     </source-location>

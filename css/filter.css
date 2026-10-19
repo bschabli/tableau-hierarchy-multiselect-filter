@@ -110,3 +110,5 @@ div.wunderbaum span.wb-node i.wb-checkbox::before {
   line-height: 1;
   flex-shrink: 0;
 }
+
+.heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.heading strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.heading #configure{font-size:11px;padding:4px 7px;white-space:nowrap}

@@ -1,6 +1,7 @@
 import {TableauConnector} from './tableau-connector.js';
 import {buildHierarchy, selectedLeafIds, getExpandedKeys} from './hierarchy.js';
 import {sameIds, effectiveSelection, hasPendingChanges} from './selection-state.js';
+import {SETTINGS_KEYS, normalizeFilterTitle} from './configuration.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => {
@@ -17,6 +18,7 @@ let appliedMode = 'AUSWAHL';     // Last known Tableau parameter.
 let busy = false;
 let ignoreEvents = false;
 let refreshTimer = null;
+let configured = false;
 
 function pending() {
   return hasPendingChanges(mode, selected, appliedMode, appliedSetIds, leaves);
@@ -29,6 +31,8 @@ function summary() {
   $('apply').disabled = busy || !changed;
   $('reload').textContent = changed ? 'Änderungen verwerfen' : 'Neu einlesen';
   $('pending').hidden = !changed;
+  $('apply').disabled = !configured || busy || !changed;
+  for(const id of ['all','none']) $(id).disabled = busy || !configured;
 }
 
 function lock(value) {
@@ -103,7 +107,7 @@ const connector = new TableauConnector({
 });
 
 async function reload(force = false) {
-  if (busy || (pending() && !force)) return;
+  if (!configured || busy || (pending() && !force)) return;
   lock(true);
   try {
     const snapshot = await connector.readState();
@@ -122,7 +126,7 @@ async function reload(force = false) {
 }
 
 function stageMode(nextMode) {
-  if (busy || !tree) return;
+  if (!configured || busy || !tree) return;
   ignoreEvents = true;
   try {
     tree.selectAll(nextMode === 'ALLE');
@@ -136,7 +140,7 @@ function stageMode(nextMode) {
 }
 
 async function apply() {
-  if (busy || !tree || !pending()) return;
+  if (!configured || busy || !tree || !pending()) return;
   lock(true);
   try {
     // No selected checkboxes = no filter restriction. Keep the Tableau Set
@@ -183,17 +187,65 @@ $('reload').addEventListener('click', () => reload(true));
 $('all').addEventListener('click', () => stageMode('ALLE'));
 $('none').addEventListener('click', () => stageMode('KEINE'));
 
+async function configure() {
+  if (busy) return;
+  try {
+    const payload = {
+      parameterName: tableau.extensions.settings.get(SETTINGS_KEYS.parameter) || '',
+      title: tableau.extensions.settings.get(SETTINGS_KEYS.title) || '',
+      parameters: await connector.listModeParameters()
+    };
+    const response = await tableau.extensions.ui.displayDialogAsync(
+      new URL('./config.html', window.location.href).href,
+      JSON.stringify(payload),
+      {height: 380, width: 470}
+    );
+    if (!response || response === 'CANCEL') return;
+    const next = JSON.parse(response);
+    await connector.chooseParameter(next.parameterName);
+    // Save only after the candidate parameter has passed validation.
+    tableau.extensions.settings.set(SETTINGS_KEYS.parameter, next.parameterName);
+    tableau.extensions.settings.set(SETTINGS_KEYS.title, normalizeFilterTitle(next.title));
+    await tableau.extensions.settings.saveAsync();
+    $('filter-title').textContent = normalizeFilterTitle(next.title);
+    configured = true;
+    mode = connector.mode;
+    selected = new Set();
+    leaves = [];
+    appliedSetIds = new Set();
+    appliedMode = mode;
+    await reload(true);
+  } catch(error) {
+    if (error?.errorCode === 'DialogClosedByUser' ||
+        String(error?.message || '').includes('DialogClosedByUser')) return;
+    status('Konfiguration: ' + error.message, true);
+  }
+}
+
+$('configure').addEventListener('click', configure);
+
 async function start() {
   window.__hierarchyAppStarted = true;
   status('Verbinde mit Tableau ...');
   try {
-    const handshake = connector.initialize();
+    const handshake = connector.initialize(configure);
     handshake.catch(error => console.error('[Hierarchy Filter] Tableau handshake:', error));
-    mode = await Promise.race([
+    const initialMode = await Promise.race([
       handshake,
       new Promise((_, reject) => setTimeout(
         () => reject(new Error('Tableau antwortet seit 15 Sekunden nicht.')), 15000))
     ]);
+    $('filter-title').textContent = normalizeFilterTitle(
+      tableau.extensions.settings.get(SETTINGS_KEYS.title)
+    );
+    configured = initialMode !== null;
+    if(!configured) {
+      status(connector.configurationError ||
+        'Noch nicht konfiguriert: Bitte über „Konfigurieren“ einen Tableau-Modusparameter wählen.');
+      summary();
+      return;
+    }
+    mode = initialMode;
     status('Tableau verbunden. Lese Daten und Set ...');
     await reload(true);
   } catch (error) {
