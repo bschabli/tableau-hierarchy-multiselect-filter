@@ -11,16 +11,20 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Tableau Set Actions via `selectTuplesAsync`
 - Read Set membership back from Tableau to restore selection
 
+## Pro Filterinstanz konfigurieren
+
+Mit **Konfigurieren** (oder dem Tableau-Kontextmenü **Configure**) einen Tableau-Zeichenfolge-Parameter mit den Werten `ALLE`, `AUSWAHL`, `KEINE` auswählen und eine Bezeichnung vergeben. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Für jede Dimension sollte ein eigener Parameter verwendet werden; das Tableau Set wird weiterhin über die Marks-Karte verbunden.
+
 ## Install
 
-GitHub Pages publishes the root of `main` directly. Download `hierarchy_filter.trex` and add it as a Viz Extension. Keep the existing Set Action and `p.filter_modus` from the PoC.
+GitHub Pages publishes the root of `main` directly. Download `hierarchy_filter.trex` and add it as a Viz Extension. Keep the existing Set Action. The mode parameter can now be chosen per instance.
 
 ### Tableau configuration
 
 - `Leaf ID`: stable unique leaf identifier
 - `Hierarchiestufen`: ordered level columns
 - `Set-Mitgliedschaft`: the Boolean Set field `s.filter_auswahl`
-- Parameter `p.filter_modus`: `ALLE`, `AUSWAHL`, `KEINE`
+- Configurable parameter (e.g. `p.kostenstelle_filter_modus`): `ALLE`, `AUSWAHL`, `KEINE`
 - Set Action on `Select`: assign marks to `s.filter_auswahl`, keep values on clearing
 
 Do not filter the extension's own data to the selected set.
