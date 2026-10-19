@@ -29,7 +29,25 @@ button:disabled { opacity: 0.5; cursor: default; }
 }
 #pending { margin: 5px 0; font-size: 11px; color: #9c5b00; font-weight: 600; }
 #pending[hidden] { display: none; }
-#rows { height: calc(100vh - 132px); min-height: 180px; overflow: auto; }
+/* Tableau iframe height can change while the tree is re-rendering.
+   Flex sizing avoids the feedback caused by a calculated height and min-height. */
+html, body { height: 100%; }
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+}
+#rows {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  overflow: auto;
+}
+.heading, .toolbar, #status, .metrics, #pending {
+  flex: 0 0 auto;
+}
 .wunderbaum .wb-row { font-family: system-ui, sans-serif; }
 
 /* Wunderbaum emits <i> tags: prevent browser-default italic glyphs. */
