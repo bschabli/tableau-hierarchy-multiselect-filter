@@ -1,1 +1,84 @@
-:root{font-family:system-ui,-apple-system,sans-serif;font-size:13px;color:#243044}*{box-sizing:border-box}body{margin:0;padding:8px}.toolbar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}button{background:#f4f6f9;border:1px solid #bbc6d3;border-radius:4px;padding:6px 9px;cursor:pointer}button:hover{background:#e6efff}button:disabled{opacity:.5}#status{font-size:12px;color:#41546b;margin:6px 0}#status.error{color:#ab1724}.metrics{display:flex;justify-content:space-between;font-size:11px;color:#607185;margin-bottom:5px}#rows{height:calc(100vh - 112px);min-height:180px;overflow:auto}.wb-arrow-down::before{content:'▾'}.wb-arrow-right::before{content:'▸'}.wb-box-empty::before{content:'☐';font-size:17px}.wb-box-checked::before{content:'☑';font-size:17px}.wb-box-partial::before{content:'▣';font-size:17px}.wunderbaum .wb-row{font-family:system-ui,sans-serif}
+:root {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #243044;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 8px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+button {
+  background: #f4f6f9;
+  color: #25344b;
+  border: 1px solid #bbc6d3;
+  border-radius: 4px;
+  padding: 6px 9px;
+  font: inherit;
+  cursor: pointer;
+}
+button:hover { background: #e6efff; }
+button:disabled { opacity: 0.5; cursor: default; }
+#apply:not(:disabled) { background: #2768af; color: white; border-color: #2768af; }
+#status { font-size: 12px; color: #41546b; margin: 6px 0; }
+#status.error { color: #ab1724; }
+.metrics {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #607185;
+  margin-bottom: 5px;
+}
+#pending { margin: 5px 0; font-size: 11px; color: #9c5b00; font-weight: 600; }
+#pending[hidden] { display: none; }
+#rows { height: calc(100vh - 132px); min-height: 180px; overflow: auto; }
+.wunderbaum .wb-row { font-family: system-ui, sans-serif; }
+
+/* Wunderbaum emits <i> tags: prevent browser-default italic glyphs. */
+div.wunderbaum span.wb-node i.wb-checkbox,
+div.wunderbaum span.wb-node i.wb-expander,
+div.wunderbaum span.wb-node i.wb-checkbox::before,
+div.wunderbaum span.wb-node i.wb-expander::before {
+  font-style: normal;
+  font-family: Arial, system-ui, sans-serif;
+}
+
+/* Consistent, non-italic chevrons drawn with CSS rather than font symbols. */
+.wb-arrow-down::before, .wb-arrow-right::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-right: 1.8px solid currentColor;
+  border-bottom: 1.8px solid currentColor;
+  vertical-align: 2px;
+  margin-left: 2px;
+}
+.wb-arrow-right::before { transform: rotate(-45deg); }
+.wb-arrow-down::before { transform: rotate(45deg); }
+
+/* Square checkboxes with an explicit indeterminate state. */
+.wb-box-empty::before, .wb-box-checked::before, .wb-box-partial::before {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #75859a;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 700;
+  vertical-align: middle;
+  background: white;
+  color: white;
+}
+.wb-box-empty::before { content: ''; }
+.wb-box-checked::before {
+  content: '✓';
+  background: #2768af;
+  border-color: #2768af;
+}
+.wb-box-partial::before {
+  content: '−';
+  background: #2768af;
+  border-color: #2768af;
+}

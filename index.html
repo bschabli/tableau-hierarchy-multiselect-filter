@@ -1,1 +1,26 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tableau Hierarchy Multi-Select</title><link rel="stylesheet" href="./css/vendor/wunderbaum.css"><link rel="stylesheet" href="./css/filter.css"><script src="./js/tableau.extensions.1.latest.min.js"></script><script defer src="./js/vendor/wunderbaum.umd.min.js"></script><script defer src="./js/startup-diagnostics.js"></script><script defer type="module" src="./js/app.js"></script></head><body class="tableau-worksheet"><div class="toolbar"><button id="all">Alle</button><button id="none">Keine</button><button id="apply">Anwenden</button><button id="reload">Neu einlesen</button></div><p id="status" role="status">Initialisiere ...</p><div class="metrics"><span id="count"></span><span id="mode"></span></div><div id="rows" class="wb-skeleton wb-initializing"></div></body></html>
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tableau Hierarchy Multi-Select</title>
+  <link rel="stylesheet" href="./css/vendor/wunderbaum.css">
+  <link rel="stylesheet" href="./css/filter.css">
+  <script src="./js/tableau.extensions.1.latest.min.js"></script>
+  <script defer src="./js/vendor/wunderbaum.umd.min.js"></script>
+  <script defer src="./js/startup-diagnostics.js"></script>
+  <script defer type="module" src="./js/app.js"></script>
+</head>
+<body class="tableau-worksheet">
+  <div class="toolbar">
+    <button id="all" type="button">Alle</button>
+    <button id="none" type="button">Keine</button>
+    <button id="apply" type="button" disabled>Anwenden</button>
+    <button id="reload" type="button" title="Liest den Tableau-Zustand erneut ein und verwirft lokale Änderungen.">Neu einlesen</button>
+  </div>
+  <p id="status" role="status">Initialisiere ...</p>
+  <div class="metrics"><span id="count"></span><span id="mode"></span></div>
+  <p id="pending" role="status" hidden>● Nicht angewendet – Änderungen liegen nur in dieser Extension.</p>
+  <div id="rows" class="wb-skeleton wb-initializing"></div>
+</body>
+</html>
