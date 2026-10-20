@@ -203,3 +203,74 @@ test('invalid Tableau null ID gets rejected', () => {
     id:{value:'%null%'},level:{value:'Name'},flag:{value:true}
   },{leaf:[{name:'id'}],level:[{name:'level'}],membership:[{name:'flag'}]},1),/Leere Leaf-ID/);
 });
+
+test('missing first hierarchy level becomes an explicit unassigned root', () => {
+  const encoding={
+    leaf:[{name:'id'}],
+    level:[{name:'a'},{name:'b'},{name:'c'}],
+    membership:[{name:'set'}]
+  };
+  const leaves=[
+    rowToLeaf({
+      id:{value:'001'},a:{value:'%null%',formattedValue:'Null'},
+      b:{value:'Team 1'},c:{value:null},set:{value:true}
+    },encoding,1),
+    rowToLeaf({
+      id:{value:'002'},a:{value:null,formattedValue:'(Null)'},
+      b:{value:'Team 2'},c:{value:'%null%'},set:{value:false}
+    },encoding,2)
+  ];
+  assert.deepEqual(leaves[0].levels,['Ohne Zuordnung','Team 1']);
+  assert.deepEqual(leaves[1].levels,['Ohne Zuordnung','Team 2']);
+  const {roots,leafByKey}=buildHierarchy(leaves,new Set(['001']));
+  assert.equal(roots.length,1);
+  assert.equal(roots[0].title,'Ohne Zuordnung');
+  assert.deepEqual(roots[0].children.map(n=>n.title),['Team 1','Team 2']);
+  assert.equal(leafByKey.get('l:001').selected,true);
+  assert.equal(leafByKey.get('l:002').selected,false);
+});
+
+test('fully empty hierarchies still yield selectable leaves under unassigned root', () => {
+  const encoding={
+    leaf:[{name:'id'}],level:[{name:'a'},{name:'b'}],
+    membership:[{name:'set'}]
+  };
+  const leaves=['A','B'].map((id,index)=>rowToLeaf({
+    id:{value:id},a:{value:null},b:{value:'%null%'},
+    set:{value:index===0}
+  },encoding,index+1));
+  const {roots,leafByKey}=buildHierarchy(leaves,new Set(['A']));
+  assert.deepEqual(leaves[0].levels,['Ohne Zuordnung','Ohne Bezeichnung']);
+  assert.equal(roots.length,1);
+  assert.equal(roots[0].title,'Ohne Zuordnung');
+  assert.equal(roots[0].children.length,2);
+  assert.equal(roots[0].children[0].key,'l:A');
+  assert.equal(roots[0].children[1].key,'l:B');
+  assert.equal(leafByKey.get('l:A').selected,true);
+  assert.equal(leafByKey.get('l:B').selected,false);
+});
+
+test('a missing subordinate level is removed without creating another group', () => {
+  const leaf=rowToLeaf({
+    id:{value:'1'},a:{value:'Vertrieb'},b:{value:null},
+    c:{value:'Region Nord'},set:{value:'IN'}
+  },{leaf:[{name:'id'}],level:[{name:'a'},{name:'b'},{name:'c'}],
+    membership:[{name:'set'}]},1);
+  assert.deepEqual(leaf.levels,['Vertrieb','Region Nord']);
+});
+
+test('a literal first-level label Null remains a valid label', () => {
+  const leaf=rowToLeaf({
+    id:{value:'1'},a:{value:'Null',formattedValue:'Null'},
+    b:{value:'Kunde A'},set:{value:true}
+  },{leaf:[{name:'id'}],level:[{name:'a'},{name:'b'}],
+    membership:[{name:'set'}]},1);
+  assert.deepEqual(leaf.levels,['Null','Kunde A']);
+});
+
+test('a missing hierarchy shelf remains invalid rather than fabricating a root', () => {
+  const leaf=rowToLeaf({id:{value:'1'},set:{value:true}},
+    {leaf:[{name:'id'}],level:[],membership:[{name:'set'}]},1);
+  assert.deepEqual(leaf.levels,[]);
+  assert.throws(()=>buildHierarchy([leaf]),/Hierarchiestufen fehlen/);
+});

@@ -22,7 +22,7 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Compact icon tools for expand/collapse all and search-only mode, with keyboard focus, aria labels and tooltips
 - **Alle öffnen / Alle schließen** expands or collapses the entire tree without changing selected values
 - Compact 28px tree rows and tighter button spacing for narrow Tableau dashboard containers
-- Missing Tableau values (`%null%`, null native values) are removed from hierarchy levels before building ragged paths
+- Missing FIRST hierarchy levels become an "Ohne Zuordnung" root; deeper NULL values are removed to keep ragged paths compact
 - Optional second per-instance Tableau **text parameter** receives a compact, hierarchy-aware filter summary on **Anwenden** (and when configuring that parameter)
 - Mode selection uses three buttons (Alle, Auswahl, Keine); changes remain local until **Anwenden**
 
@@ -69,15 +69,24 @@ werden. Der gespeicherte Parameter ist vom Modusparameter unabhängig.
 
 ## Fehlende Hierarchieebenen
 
-Die Extension entfernt echte Nullwerte sowie Tableau-Sonderwerte wie `%null%`
-aus den Hierarchie-Shelves. Die technische Leaf ID bleibt separat und
-bestimmt **nicht** die sichtbare Tiefe. Ist `Null` dagegen ein **echter
+**Übergangslösung:** Ein echtes NULL (oder `%null%`) auf der **obersten
+Hierarchiestufe** wird als eigene Gruppe **„Ohne Zuordnung“** dargestellt.
+Andere NULL-Stufen werden wie bisher übersprungen. Wenn bei einem Objekt
+sämtliche Ebenen fehlen, erscheint es als **„Ohne Bezeichnung“** unter
+„Ohne Zuordnung“. Auch mehrere solche Objekte behalten jeweils ihre
+technische Leaf-ID und können getrennt ausgewählt werden.
+
+Die technische Leaf-ID bestimmt **nicht** die sichtbare Tiefe. Ist `Null` dagegen ein **echter
 Textwert**, weil ein Tableau-Berechnungsfeld beispielsweise
 `IFNULL([Ebene], "Null")` verwendet, kann die Extension ihn nicht sicher von
 einem realen Kategorienamen unterscheiden. In diesem Fall die betreffende
 Hierarchiestufe in Tableau als **echtes NULL** belassen, und für die technische
 Leaf-ID lieber stabile eindeutige Objektcodes oder eindeutig getrennte,
-nichtleere Pfadsegmente verwenden. Die Leaf ID muss pro Zeile eindeutig sein.
+nichtleere Pfadsegmente verwenden. **Die Leaf-ID muss weiterhin für jedes
+Objekt eindeutig sein.** Werden IDs nur aus Ebenennamen verkettet, können
+mehrere unzugeordnete Objekte dieselbe ID erhalten. Das behebt die
+Anzeige der Extension nicht; für diese Fälle braucht es eine stabile
+Objektkennung oder eine zusätzliche eindeutige Komponente in der ID.
 
 ## Pro Filterinstanz konfigurieren
 

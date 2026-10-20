@@ -20,6 +20,27 @@ export function displayHierarchyLevel(cell) {
     ? formatted : normalizeId(cell.value);
 }
 
+/** Temporary display labels for objects without a top-level assignment. */
+export const UNASSIGNED_ROOT_LABEL = 'Ohne Zuordnung';
+export const UNNAMED_OBJECT_LABEL = 'Ohne Bezeichnung';
+
+/**
+ * Preserve a missing FIRST hierarchy level as its own root category.
+ * Missing subordinate levels are still compressed for ragged hierarchies.
+ * If there is no descriptive level at all, create one visible child label:
+ * each Tableau object remains separately selectable via its technical Leaf ID.
+ */
+export function displayHierarchyLevels(cells) {
+  if (!cells.length) return [];
+  const labels = cells.map(displayHierarchyLevel);
+  const descendants = labels.slice(1).filter(Boolean);
+  if (!labels[0]) {
+    return [UNASSIGNED_ROOT_LABEL,
+      ...(descendants.length ? descendants : [UNNAMED_OBJECT_LABEL])];
+  }
+  return [labels[0], ...descendants];
+}
+
 export function membership(value) {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'number') return value === 1 ? true : value === 0 ? false : null;
@@ -36,11 +57,11 @@ export function rowToLeaf(row, encodingMap, tupleId) {
   const id = isMissingTableauValue(idCell) ? '' : normalizeId(idCell.value);
   if (!id) throw new Error('Leere Leaf-ID in Zeile ' + tupleId);
 
-  // Skips actual nulls, nativeValue === null and Tableau's "%null%" sentinel.
-  // Any final populated level therefore becomes the visible terminal node.
-  const levels = (encodingMap.level ?? [])
-    .map(f => displayHierarchyLevel(row[f.name]))
-    .filter(Boolean);
+  // Retain an unassigned top level as a visible group. Deeper NULL
+  // placeholders do not add extra hierarchy nodes.
+  const levels = displayHierarchyLevels(
+    (encodingMap.level ?? []).map(f => row[f.name])
+  );
 
   const raw = encodingMap.membership?.[0] ? row[encodingMap.membership[0].name] : null;
   let inSet = raw ? membership(raw.value) : null;
