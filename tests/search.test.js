@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildHierarchy} from '../js/hierarchy.js';
-import {findSearchBranches} from '../js/tree-search.js';
+import {findSearchBranches, searchDisplayMode} from '../js/tree-search.js';
 
 const leaves = [
   {id:'111', levels:['Produktion','Montage','Kostenstelle Berlin']},
@@ -51,4 +51,20 @@ test('case-insensitive substring matching and empty search', () => {
   assert.equal(findSearchBranches(roots, 'STELLE').count, 2);
   assert.equal(findSearchBranches(roots, '   ').count, 0);
   assert.equal(findSearchBranches(roots, '   ').expandKeys.size, 0);
+});
+
+test('search visibility toggle uses Wunderbaum mark/hide modes', () => {
+  assert.equal(searchDisplayMode(false), 'mark');
+  assert.equal(searchDisplayMode(true), 'hide');
+});
+
+test('switching search visibility does not change which branches match', () => {
+  const {roots} = buildHierarchy(leaves, new Set(['112']));
+  const before = findSearchBranches(roots, 'berlin');
+  const mode = searchDisplayMode(true);
+  const after = findSearchBranches(roots, 'berlin');
+  assert.equal(mode, 'hide');
+  assert.deepEqual(after.expandKeys, before.expandKeys);
+  assert.equal(after.count, before.count);
+  assert.equal(roots[0].children[0].children[1].selected, true);
 });

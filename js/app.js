@@ -2,7 +2,7 @@ import {TableauConnector} from './tableau-connector.js';
 import {buildHierarchy, selectedLeafIds, getExpandedKeys} from './hierarchy.js';
 import {sameIds, effectiveSelection, resolveApplyState, hasPendingChanges} from './selection-state.js';
 import {SETTINGS_KEYS, normalizeFilterTitle} from './configuration.js';
-import {findSearchBranches} from './tree-search.js';
+import {findSearchBranches, searchDisplayMode} from './tree-search.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => {
@@ -23,6 +23,8 @@ let configured = false;
 let lastExplicitSelection = new Set();
 let beforeSearchExpansion = null;
 let searchTimer = null;
+let showOnlyMatches = false;
+const modeButtons = [...document.querySelectorAll('[data-mode]')];
 
 function updateOptionalTitle() {
   const show=tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true';
@@ -42,9 +44,15 @@ function summary() {
   const modeNames = {ALLE: 'Alle', AUSWAHL: 'Auswahl', KEINE: 'Keine'};
   $('mode').textContent = 'Aktiv: ' + (modeNames[appliedMode] ?? appliedMode)
     + (changed ? ' · noch nicht angewendet' : '');
-  $('mode-select').value = mode;
-  $('mode-select').disabled = !configured || busy;
+  for (const button of modeButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
+    button.disabled = !configured || busy;
+  }
   $('search-query').disabled = !configured || busy;
+  $('search-only').disabled = !configured || busy;
+  $('expand-all').disabled = !configured || busy;
+  $('collapse-all').disabled = !configured || busy;
+  $('search-only').setAttribute('aria-pressed', String(showOnlyMatches));
   $('reload').textContent = changed ? 'Änderungen verwerfen' : 'Neu einlesen';
   $('pending').hidden = !changed;
   $('apply').disabled = !configured || busy || !changed;
@@ -73,7 +81,7 @@ function createTree() {
       source: roots,
       checkbox: true,
       selectMode: 'hier',
-      // Highlight only: search never hides selectable values.
+      // Search changes only visibility/highlighting, never checkbox state.
       filter: {mode: 'mark', highlight: true, autoExpand: false},
       init: event => {
         // Wunderbaum loads the initial source asynchronously.
@@ -163,7 +171,12 @@ function applySearch(scrollToTop = true) {
   const {expandKeys, count} =
     findSearchBranches(tree.root.children || [], query);
 
-  tree.filterNodes(query, {mode: 'mark', highlight: true, autoExpand: false});
+  tree.filterNodes(query, {
+    mode: searchDisplayMode(showOnlyMatches),
+    highlight: true,
+    autoExpand: false,
+    matchBranch: false
+  });
   tree.runWithDeferredUpdate(() => {
     for (const key of expandKeys) {
       const node = tree.findKey(key);
@@ -176,6 +189,25 @@ function applySearch(scrollToTop = true) {
     ? 'Keine Treffer'
     : count === 1 ? '1 Treffer' : count + ' Treffer';
   if (scrollToTop) $('rows').scrollTop = 0;
+}
+
+/**
+ * Expand or collapse the complete hierarchy without affecting selection.
+ * During search, the pre-search expansion snapshot remains unchanged so
+ * clearing the query still restores the user's original tree view.
+ */
+async function setAllExpanded(expand) {
+  if (!configured || busy || !tree) return;
+  try {
+    await tree.expandAll(expand, {
+      force: true,
+      deep: !expand,
+      keepActiveNodeVisible: false
+    });
+  } catch (error) {
+    console.error('[Hierarchy Filter] Baumansicht:', error);
+    status('Ansicht konnte nicht geändert werden: ' + error.message, true);
+  }
 }
 
 function scheduleRefresh() {
@@ -289,7 +321,20 @@ async function apply() {
 
 $('apply').addEventListener('click', apply);
 $('reload').addEventListener('click', () => reload(true));
-$('mode-select').addEventListener('change', event => stageMode(event.target.value));
+for (const button of modeButtons) {
+  button.addEventListener('click', () => stageMode(button.dataset.mode));
+}
+$('search-only').addEventListener('click', () => {
+  showOnlyMatches = !showOnlyMatches;
+  summary();
+  try { applySearch(false); }
+  catch (error) {
+    console.error('[Hierarchy Filter] Suchansicht:', error);
+    status('Suchansicht konnte nicht geändert werden: ' + error.message, true);
+  }
+});
+$('expand-all').addEventListener('click', () => setAllExpanded(true));
+$('collapse-all').addEventListener('click', () => setAllExpanded(false));
 $('search-query').addEventListener('input', () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {

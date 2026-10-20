@@ -14,14 +14,11 @@
 <body class="tableau-worksheet">
   <div class="heading" id="heading" hidden><strong id="filter-title">Hierarchiefilter</strong></div>
   <div class="toolbar">
-    <label class="mode-picker" for="mode-select">
-      <span>Modus</span>
-      <select id="mode-select" aria-label="Filtermodus" disabled>
-        <option value="ALLE">Alle</option>
-        <option value="AUSWAHL">Auswahl</option>
-        <option value="KEINE">Keine</option>
-      </select>
-    </label>
+    <div class="mode-buttons" role="group" aria-label="Filtermodus">
+      <button type="button" data-mode="ALLE" aria-pressed="false" disabled>Alle</button>
+      <button type="button" data-mode="AUSWAHL" aria-pressed="false" disabled>Auswahl</button>
+      <button type="button" data-mode="KEINE" aria-pressed="false" disabled>Keine</button>
+    </div>
     <button id="apply" type="button" disabled>Anwenden</button>
     <button id="reload" type="button" title="Liest den Tableau-Zustand erneut ein und verwirft lokale Änderungen.">Neu einlesen</button>
   </div>
@@ -29,6 +26,12 @@
     <input id="search-query" type="search" autocomplete="off" spellcheck="false"
       placeholder="Hierarchie durchsuchen …" aria-label="Hierarchie durchsuchen" disabled>
     <span id="search-count" role="status" aria-live="polite"></span>
+  </div>
+  <div class="tree-actions" role="group" aria-label="Baumansicht">
+    <button id="search-only" type="button" aria-pressed="false" disabled
+      title="Nur passende Knoten und ihre übergeordneten Zweige anzeigen">Nur Treffer</button>
+    <button id="expand-all" type="button" disabled title="Alle Zweige aufklappen">Alle öffnen</button>
+    <button id="collapse-all" type="button" disabled title="Alle Zweige zuklappen">Alle schließen</button>
   </div>
   <p id="status" role="status">Initialisiere ...</p>
   <div class="metrics"><span id="count"></span><span id="mode"></span></div>

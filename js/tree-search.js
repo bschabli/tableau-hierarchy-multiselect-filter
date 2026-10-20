@@ -2,6 +2,11 @@
  * Find branches to expand so every matched label becomes visible.
  * Searches displayed titles only, never the technical leaf keys.
  */
+/** Wunderbaum uses 'hide' to show only matches and 'mark' to just highlight. */
+export function searchDisplayMode(showOnlyMatches) {
+  return showOnlyMatches ? 'hide' : 'mark';
+}
+
 export function findSearchBranches(nodes, query) {
   const needle = String(query ?? '').trim().toLocaleLowerCase('de-DE');
   const expandKeys = new Set();

@@ -16,6 +16,9 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Automatically expands all branches containing matches, including matching parent nodes
 - Clearing the query restores the expansion state before searching
 - Search never changes checkboxes, parameters or Tableau Set membership
+- **Nur Treffer** toggles Wunderbaum's hide filter: only matches and their ancestor paths remain visible
+- **Alle öffnen / Alle schließen** expands or collapses the entire tree without changing selected values
+- Mode selection uses three buttons (Alle, Auswahl, Keine); changes remain local until **Anwenden**
 
 ## Format Extension – wichtig: `.trex` erneut laden
 
@@ -31,7 +34,7 @@ Der Manifeststand ist jetzt **0.2.0**.
 Solange kein Modusparameter gespeichert ist, wird der Konfigurationsdialog beim
 ersten Laden einmalig angeboten. Danach wird er über **Format Extension** geöffnet.
 
-**Modusauswahl:** Im Filter ist ein Dropdown **Alle / Auswahl / Keine** sichtbar.
+**Modusauswahl:** Im Filter sind drei Buttons **Alle / Auswahl / Keine** sichtbar.
 Die Änderung bleibt lokal bis **Anwenden**. Auf ausdrücklichen Wunsch gilt weiterhin:
 **Keine + Anwenden** schreibt **alle Werte ins Tableau Set** und setzt den Modus auf **Alle** zurück. Die Checkboxen bleiben dabei leer.
 

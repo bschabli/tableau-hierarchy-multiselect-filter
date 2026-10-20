@@ -146,33 +146,47 @@ div.wunderbaum div.wb-row { font-size: 11px; }
 }
 
 
-/* Compact mode control; unlike the old Alle/Keine buttons it offers Auswahl. */
-.mode-picker {
+/* Distinct mode buttons provide visible draft-state feedback. */
+.mode-buttons {
   display: inline-flex;
-  flex: 1 1 100px;
-  max-width: 165px;
-  min-width: 0;
-  align-items: center;
-  gap: 4px;
-  color: #566a80;
-  font-size: 10px;
-}
-.mode-picker select {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: 76px;
-  padding: 3px 2px;
+  align-items: stretch;
+  gap: 0;
   border: 1px solid #bbc6d3;
   border-radius: 4px;
-  background: white;
-  color: #263445;
-  font: inherit;
-  font-size: 11px;
+  overflow: hidden;
 }
-.mode-picker select:disabled { opacity: .5; }
+.mode-buttons button {
+  border: 0;
+  border-radius: 0;
+  padding: 4px 7px;
+  background: #f4f6f9;
+  color: #263445;
+}
+.mode-buttons button + button { border-left: 1px solid #bbc6d3; }
+.mode-buttons button[aria-pressed="true"] {
+  background: #2768af;
+  color: #fff;
+}
+.mode-buttons button[aria-pressed="true"]:disabled { opacity: .65; }
+.tree-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 4px;
+}
+.tree-actions button {
+  font-size: 10px;
+  padding: 3px 6px;
+}
+#search-only[aria-pressed="true"] {
+  background: #daeaff;
+  border-color: #2768af;
+  color: #174a87;
+}
 @media (max-width: 240px) {
-  .mode-picker { flex-basis: 82px; }
-  .mode-picker span { display: none; }
+  .mode-buttons button { padding: 3px 5px; }
+  .tree-actions button { padding: 3px 5px; }
 }
 
 /* Search occupies a separate compact row, suitable for narrow dashboards. */
