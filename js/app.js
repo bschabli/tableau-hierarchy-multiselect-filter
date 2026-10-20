@@ -3,6 +3,7 @@ import {buildHierarchy, selectedLeafIds, getExpandedKeys} from './hierarchy.js';
 import {sameIds, effectiveSelection, resolveApplyState, hasPendingChanges} from './selection-state.js';
 import {SETTINGS_KEYS, normalizeFilterTitle} from './configuration.js';
 import {findSearchBranches, searchDisplayMode} from './tree-search.js';
+import {summarizeFilterSelection} from './filter-summary.js';
 
 const $ = id => document.getElementById(id);
 const status = (message, error = false) => {
@@ -332,13 +333,18 @@ async function apply() {
       ignoreEvents = false;
     }
     summary();
-    if (mode === 'ALLE') {
-      status('Alle Werte ausgewählt und angewendet.');
-    } else if (mode === 'KEINE') {
-      status('Keine Werte ausgewählt und angewendet.');
-    } else {
-      status(selected.size + ' Werte ausgewählt und angewendet.');
+    let summaryWarning='';
+    try {
+      await connector.writeSummary(summarizeFilterSelection(leaves, intended.setIds));
+    } catch (error) {
+      console.error('[Hierarchy Filter] Zusammenfassung:', error);
+      summaryWarning=' Zusammenfassung nicht aktualisiert: '+error.message;
     }
+    const successMessage=mode === 'ALLE'
+      ? 'Alle Werte ausgewählt und angewendet.'
+      : mode === 'KEINE' ? 'Keine Werte ausgewählt und angewendet.'
+        : selected.size + ' Werte ausgewählt und angewendet.';
+    status(successMessage + summaryWarning, !!summaryWarning);
   } catch (error) {
     status('Anwenden fehlgeschlagen: ' + error.message, true);
   } finally {
@@ -388,6 +394,11 @@ async function configure() {
       parameterName: tableau.extensions.settings.get(SETTINGS_KEYS.parameter) || '',
       title: tableau.extensions.settings.get(SETTINGS_KEYS.title) || '',
       showTitle: tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true',
+      summaryParameterName: tableau.extensions.settings.get(SETTINGS_KEYS.summaryParameter) || '',
+      summaryParameters: await connector.listTextParameters().catch(error => {
+        console.warn('[Hierarchy Filter] Textparametervorschläge nicht verfügbar:', error);
+        return [];
+      }),
       parameters: await connector.listModeParameters().catch(error => {
         console.warn('[Hierarchy Filter] Parametervorschläge nicht verfügbar:', error);
         return [];
@@ -401,8 +412,10 @@ async function configure() {
     if (!response || response === 'CANCEL') return;
     const next = JSON.parse(response);
     await connector.chooseParameter(next.parameterName);
-    // Save only after the candidate parameter has passed validation.
+    await connector.chooseSummaryParameter(next.summaryParameterName || '');
+    // Save only after both parameters have passed validation.
     tableau.extensions.settings.set(SETTINGS_KEYS.parameter, next.parameterName);
+    tableau.extensions.settings.set(SETTINGS_KEYS.summaryParameter, next.summaryParameterName || '');
     tableau.extensions.settings.set(SETTINGS_KEYS.title, String(next.title??'').trim().slice(0,80));
     tableau.extensions.settings.set(SETTINGS_KEYS.showTitle, String(next.showTitle===true));
     await tableau.extensions.settings.saveAsync();
@@ -414,6 +427,9 @@ async function configure() {
     appliedSetIds = new Set();
     appliedMode = mode;
     await reload(true);
+    if (connector.summaryParameter) {
+      await connector.writeSummary(summarizeFilterSelection(leaves, appliedSetIds));
+    }
   } catch(error) {
     if (error?.errorCode === 'DialogClosedByUser' ||
         String(error?.message || '').includes('DialogClosedByUser')) return;
@@ -451,6 +467,10 @@ async function start() {
     mode = initialMode;
     status('Tableau verbunden. Lese Daten und Set ...');
     await reload(true);
+    if (connector.summaryConfigurationError) {
+      status('Auswahl geladen, aber der Zusammenfassungsparameter ist ungültig: ' +
+        connector.summaryConfigurationError, true);
+    }
   } catch (error) {
     console.error('[Hierarchy Filter] Startfehler:', error);
     status('Initialisierung fehlgeschlagen: ' + (error?.message || String(error)), true);

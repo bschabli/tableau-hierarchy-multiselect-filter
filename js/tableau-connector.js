@@ -1,12 +1,15 @@
 /** Tableau API, with a mode parameter chosen independently per Viz instance. */
 import {rowToLeaf,readLeafSelection,validateLeaves} from './core.js';
-import {parameterOption,SETTINGS_KEYS,MODE_VALUES} from './configuration.js';
+import {parameterOption,textParameterOption,SETTINGS_KEYS,MODE_VALUES} from './configuration.js';
 
 export class TableauConnector {
   constructor({onDataChanged,onModeChanged}={}) {
     this.worksheet=null;
     this.parameter=null;
     this.parameterName='';
+    this.summaryParameter=null;
+    this.summaryParameterName='';
+    this.summaryConfigurationError='';
     this.configurationError='';
     this.onDataChanged=onDataChanged??(()=>{});
     this.onModeChanged=onModeChanged??(()=>{});
@@ -24,6 +27,16 @@ export class TableauConnector {
     if(!savedName) return null;
     try {
       await this.chooseParameter(savedName);
+      const summaryName=tableau.extensions.settings.get(SETTINGS_KEYS.summaryParameter);
+      if (summaryName) {
+        try {
+          await this.chooseSummaryParameter(summaryName);
+        } catch (error) {
+          // An optional removed parameter must never stop the primary filter.
+          this.summaryConfigurationError=error.message;
+          console.warn('[Hierarchy Filter] Zusammenfassung:', error);
+        }
+      }
       return this.mode;
     } catch(error) {
       // Don't block Configure if the saved parameter has been renamed.
@@ -37,6 +50,46 @@ export class TableauConnector {
       .map(parameterOption)
       .filter(item=>item.name)
       .sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  }
+
+  async listTextParameters() {
+    return (await this.worksheet.getParametersAsync())
+      .map(textParameterOption)
+      .filter(item => item.name)
+      .sort((a,b) => a.name.localeCompare(b.name,'de'));
+  }
+
+  async chooseSummaryParameter(name) {
+    const normalized=String(name??'').trim();
+    if (!normalized) {
+      this.summaryParameter=null;
+      this.summaryParameterName='';
+      this.summaryConfigurationError='';
+      return;
+    }
+    if (normalized===this.parameterName)
+      throw new Error('Die Zusammenfassung benötigt einen eigenen Tableau-Parameter.');
+    let candidate=null;
+    if (typeof this.worksheet.findParameterAsync==='function')
+      candidate=await this.worksheet.findParameterAsync(normalized);
+    if (!candidate) {
+      const parameters=await this.worksheet.getParametersAsync();
+      candidate=parameters.find(p=>p.name===normalized);
+    }
+    if (!candidate)
+      throw new Error('Zusammenfassungsparameter "'+normalized+'" nicht gefunden.');
+    const option=textParameterOption(candidate);
+    if (!option.valid)
+      throw new Error('Zusammenfassungsparameter "'+normalized+'": '+option.reason);
+    this.summaryParameter=candidate;
+    this.summaryParameterName=normalized;
+    this.summaryConfigurationError='';
+  }
+
+  async writeSummary(value) {
+    if (!this.summaryParameter) return false;
+    await this.summaryParameter.changeValueAsync(String(value));
+    return true;
   }
 
   async chooseParameter(name) {

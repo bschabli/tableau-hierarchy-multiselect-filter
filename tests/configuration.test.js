@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parameterOption,normalizeFilterTitle,SETTINGS_KEYS} from '../js/configuration.js';
+import {parameterOption,textParameterOption,normalizeFilterTitle,SETTINGS_KEYS} from '../js/configuration.js';
 
 const modeParameter={
   name:'p.guV_modus',dataType:'string',
@@ -45,4 +45,14 @@ test('optional title has a separate persisted setting',()=>{
   assert.equal(SETTINGS_KEYS.showTitle,'hierarchyFilter.showTitle');
   assert.equal(normalizeFilterTitle(''), 'Hierarchiefilter');
   assert.equal(normalizeFilterTitle('  Kostenstellen  '), 'Kostenstellen');
+});
+
+test('second summary parameter accepts unrestricted text and rejects fixed lists', () => {
+  assert.equal(SETTINGS_KEYS.summaryParameter,'hierarchyFilter.summaryParameter');
+  const free={name:'p.kostenstellen_zusammenfassung',dataType:'string',
+    currentValue:{value:'Keine'},allowableValues:{type:'all'}};
+  assert.equal(textParameterOption(free).valid,true);
+  assert.equal(textParameterOption({...free,allowableValues:{type:'list',
+    allowableValues:[{value:'Alle'}]}}).valid,false);
+  assert.equal(textParameterOption({...free,dataType:'int'}).valid,false);
 });

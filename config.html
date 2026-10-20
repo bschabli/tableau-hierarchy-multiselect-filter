@@ -19,6 +19,13 @@
     <datalist id="mode-parameter-options"></datalist>
     <p class="hint">Wähle einen Vorschlag oder gib den Namen eines Parameters ein, der die Werte ALLE, AUSWAHL und KEINE unterstützt.</p>
     <p id="parameter-hint" class="hint" role="status"></p>
+    <label for="summary-parameter">Zusammenfassungsparameter (optional)</label>
+    <input id="summary-parameter" list="summary-parameter-options" type="text"
+      autocomplete="off" spellcheck="false"
+      placeholder="z. B. p.kostenstellen_zusammenfassung">
+    <datalist id="summary-parameter-options"></datalist>
+    <p class="hint">Tableau-Zeichenfolge-Parameter mit „Alle“ als zulässigen Werten. Er erhält beim Anwenden die kompakte Auswahl, zum Beispiel „Produktion, Verwaltung › Einkauf“.</p>
+    <p id="summary-hint" class="hint" role="status"></p>
 
     <label class="checkbox-label" for="show-title">
       <input id="show-title" type="checkbox"> Titel in der Extension anzeigen

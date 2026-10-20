@@ -22,6 +22,8 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Compact icon tools for expand/collapse all and search-only mode, with keyboard focus, aria labels and tooltips
 - **Alle öffnen / Alle schließen** expands or collapses the entire tree without changing selected values
 - Compact 28px tree rows and tighter button spacing for narrow Tableau dashboard containers
+- Missing Tableau values (`%null%`, null native values) are removed from hierarchy levels before building ragged paths
+- Optional second per-instance Tableau **text parameter** receives a compact, hierarchy-aware filter summary on **Anwenden** (and when configuring that parameter)
 - Mode selection uses three buttons (Alle, Auswahl, Keine); changes remain local until **Anwenden**
 
 ## Format Extension – wichtig: `.trex` erneut laden
@@ -45,6 +47,37 @@ Die Änderung bleibt lokal bis **Anwenden**. Auf ausdrücklichen Wunsch gilt wei
 **Hierarchie:** Die unterste ausgefüllte Ebene ist der letzte sichtbare Knoten.
 Die Leaf ID ist ausschließlich der eindeutige technische Schlüssel; sie wird
 nicht als zusätzliche Hierarchieebene angezeigt.
+
+## Zusammenfassungsparameter
+
+Optional kann über **Format Extension** ein zweiter Tableau-Parameter für die
+Zusammenfassung gewählt werden, z. B. `p.kostenstellen_zusammenfassung`.
+In Tableau vorher einen **Zeichenfolge-Parameter mit zulässigen Werten „Alle“**
+(`All`, keine feste Werteliste) erstellen und im Workbook verwenden. Tableau
+stellt der Extension nur verfügbare Workbook-Parameter zur Verfügung.
+
+Beim Klick auf **Anwenden** schreibt die Extension:
+- `Alle` bei vollständiger Auswahl
+- `Keine` bei leerer Auswahl
+- eine verkürzte Hierarchieliste bei Teilselektion, beispielsweise
+  `Produktion, Vertrieb › Region Ost`
+
+Sind alle Kinder einer Kategorie gewählt, wird nur die Kategorie genannt.
+Die Zusammenfassung ist auf 240 Zeichen begrenzt und endet bei Bedarf mit
+`(+N weitere)`. Der Parameter kann im Dashboard als dynamischer Text verwendet
+werden. Der gespeicherte Parameter ist vom Modusparameter unabhängig.
+
+## Fehlende Hierarchieebenen
+
+Die Extension entfernt echte Nullwerte sowie Tableau-Sonderwerte wie `%null%`
+aus den Hierarchie-Shelves. Die technische Leaf ID bleibt separat und
+bestimmt **nicht** die sichtbare Tiefe. Ist `Null` dagegen ein **echter
+Textwert**, weil ein Tableau-Berechnungsfeld beispielsweise
+`IFNULL([Ebene], "Null")` verwendet, kann die Extension ihn nicht sicher von
+einem realen Kategorienamen unterscheiden. In diesem Fall die betreffende
+Hierarchiestufe in Tableau als **echtes NULL** belassen, und für die technische
+Leaf-ID lieber stabile eindeutige Objektcodes oder eindeutig getrennte,
+nichtleere Pfadsegmente verwenden. Die Leaf ID muss pro Zeile eindeutig sein.
 
 ## Pro Filterinstanz konfigurieren
 

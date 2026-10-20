@@ -158,3 +158,48 @@ test('changes are pending until the full intended set is in Tableau', () => {
   assert.equal(hasPendingChanges('KEINE',new Set(),'KEINE',new Set()),false);
   assert.equal(hasPendingChanges('AUSWAHL',partial,'AUSWAHL',partial),false);
 });
+
+test('Tableau %null% is removed from ragged paths', () => {
+  const row = {
+    id:{value:'P-1'}, l1:{value:'Produktion',formattedValue:'Produktion'},
+    l2:{value:'%null%',formattedValue:'Null'},
+    l3:{value:null,formattedValue:'(Null)'},
+    l4:{value:'Montage',formattedValue:'Montage'},
+    flag:{value:true}
+  };
+  const encoding = {
+    leaf:[{name:'id'}],
+    level:[{name:'l1'},{name:'l2'},{name:'l3'},{name:'l4'}],
+    membership:[{name:'flag'}]
+  };
+  const leaf=rowToLeaf(row,encoding,1);
+  assert.deepEqual(leaf.levels,['Produktion','Montage']);
+  assert.equal(buildHierarchy([leaf]).roots[0].children[0].title,'Montage');
+});
+
+test('nativeValue null suppresses formatted Null labels', () => {
+  const row={
+    id:{value:'P-2'},
+    l1:{value:'%null%',nativeValue:null,formattedValue:'Null'},
+    l2:{value:'X',nativeValue:'X',formattedValue:'Abteilung X'},
+    flag:{value:'IN'}
+  };
+  const leaf=rowToLeaf(row,{
+    leaf:[{name:'id'}],level:[{name:'l1'},{name:'l2'}],
+    membership:[{name:'flag'}]
+  },2);
+  assert.deepEqual(leaf.levels,['Abteilung X']);
+});
+
+test('a literal String "Null" is not silently removed', () => {
+  const leaf=rowToLeaf({
+    id:{value:'A'},level:{value:'Null',formattedValue:'Null'},flag:{value:true}
+  },{leaf:[{name:'id'}],level:[{name:'level'}],membership:[{name:'flag'}]},1);
+  assert.deepEqual(leaf.levels,['Null']);
+});
+
+test('invalid Tableau null ID gets rejected', () => {
+  assert.throws(()=>rowToLeaf({
+    id:{value:'%null%'},level:{value:'Name'},flag:{value:true}
+  },{leaf:[{name:'id'}],level:[{name:'level'}],membership:[{name:'flag'}]},1),/Leere Leaf-ID/);
+});
