@@ -201,7 +201,7 @@ async function setAllExpanded(expand) {
   try {
     await tree.expandAll(expand, {
       force: true,
-      deep: !expand,
+      ...(expand ? {} : {deep: true}),
       keepActiveNodeVisible: false
     });
   } catch (error) {
