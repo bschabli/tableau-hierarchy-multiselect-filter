@@ -25,6 +25,11 @@
     <button id="apply" type="button" disabled>Anwenden</button>
     <button id="reload" type="button" title="Liest den Tableau-Zustand erneut ein und verwirft lokale Änderungen.">Neu einlesen</button>
   </div>
+  <div class="search-bar">
+    <input id="search-query" type="search" autocomplete="off" spellcheck="false"
+      placeholder="Hierarchie durchsuchen …" aria-label="Hierarchie durchsuchen" disabled>
+    <span id="search-count" role="status" aria-live="polite"></span>
+  </div>
   <p id="status" role="status">Initialisiere ...</p>
   <div class="metrics"><span id="count"></span><span id="mode"></span></div>
   <p id="pending" role="status" hidden>● Nicht angewendet – Änderungen liegen nur in dieser Extension.</p>

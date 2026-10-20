@@ -12,6 +12,10 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Expand/Collapse state and scroll position are preserved on Set refresh; rows use Wunderbaum's matching 32px virtual row height.
 - Tableau Set Actions via `selectTuplesAsync`
 - Read Set membership back from Tableau to restore selection
+- Compact hierarchy search (case-insensitive partial title matches), highlights matching text
+- Automatically expands all branches containing matches, including matching parent nodes
+- Clearing the query restores the expansion state before searching
+- Search never changes checkboxes, parameters or Tableau Set membership
 
 ## Format Extension – wichtig: `.trex` erneut laden
 

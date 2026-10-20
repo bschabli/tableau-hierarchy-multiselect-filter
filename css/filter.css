@@ -174,3 +174,44 @@ div.wunderbaum div.wb-row { font-size: 11px; }
   .mode-picker { flex-basis: 82px; }
   .mode-picker span { display: none; }
 }
+
+/* Search occupies a separate compact row, suitable for narrow dashboards. */
+.search-bar {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+  margin: 0 0 4px;
+  flex: 0 0 auto;
+}
+#search-query {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  padding: 4px 7px;
+  color: #263445;
+  background: #fff;
+  border: 1px solid #bbc6d3;
+  border-radius: 4px;
+}
+#search-query:focus { outline: 2px solid #89b4e8; outline-offset: 1px; }
+#search-query:disabled { opacity: .6; }
+#search-count {
+  flex: 0 0 auto;
+  color: #63748a;
+  font-size: 10px;
+  white-space: nowrap;
+}
+div.wunderbaum mark {
+  background: #ffe69b;
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+@media (max-width: 240px) {
+  #search-query { font-size: 10px; padding: 3px 5px; }
+  #search-count { font-size: 9px; }
+}
