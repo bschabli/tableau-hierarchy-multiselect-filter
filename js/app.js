@@ -390,24 +390,30 @@ $('search-query').addEventListener('keydown', event => {
 async function configure() {
   if (busy) return;
   try {
+    // Read the Tableau parameter list only once. Never mask an API exception
+    // as an apparently valid but empty set of suggestions.
+    let candidates={parameters:[],summaryParameters:[],returnedCount:0};
+    let parameterLookupError='';
+    try {
+      candidates=await connector.listParameterCandidates();
+    } catch (error) {
+      parameterLookupError=error?.message || String(error);
+      console.error('[Hierarchy Filter] Parameterliste:', error);
+    }
     const payload = {
       parameterName: tableau.extensions.settings.get(SETTINGS_KEYS.parameter) || '',
       title: tableau.extensions.settings.get(SETTINGS_KEYS.title) || '',
       showTitle: tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true',
       summaryParameterName: tableau.extensions.settings.get(SETTINGS_KEYS.summaryParameter) || '',
-      summaryParameters: await connector.listTextParameters().catch(error => {
-        console.warn('[Hierarchy Filter] Textparametervorschläge nicht verfügbar:', error);
-        return [];
-      }),
-      parameters: await connector.listModeParameters().catch(error => {
-        console.warn('[Hierarchy Filter] Parametervorschläge nicht verfügbar:', error);
-        return [];
-      })
+      summaryParameters: candidates.summaryParameters,
+      parameters: candidates.parameters,
+      returnedParameterCount: candidates.returnedCount,
+      parameterLookupError
     };
     const response = await tableau.extensions.ui.displayDialogAsync(
       new URL('./config.html', window.location.href).href,
       JSON.stringify(payload),
-      {height: 380, width: 470}
+      {height: 560, width: 490}
     );
     if (!response || response === 'CANCEL') return;
     const next = JSON.parse(response);

@@ -81,7 +81,7 @@ nichtleere Pfadsegmente verwenden. Die Leaf ID muss pro Zeile eindeutig sein.
 
 ## Pro Filterinstanz konfigurieren
 
-Über **Format Extension** in der Tableau-Marks-Karte einen Tableau-Zeichenfolge-Parameter mit den Werten `ALLE`, `AUSWAHL`, `KEINE` auswählen. Die Filterbezeichnung ist optional und kann per Checkbox eingeblendet werden. Parameter können aus Vorschlägen gewählt oder namentlich eingegeben werden. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Für jede Dimension sollte ein eigener Parameter verwendet werden; das Tableau Set wird weiterhin über die Marks-Karte verbunden.
+Über **Format Extension** in der Tableau-Marks-Karte einen Tableau-Zeichenfolge-Parameter mit den Werten `ALLE`, `AUSWAHL`, `KEINE` auswählen. Der Dialog verwendet echte HTML-Dropdowns statt `datalist`, sodass Vorschläge auch im eingebetteten Tableau-Browser sichtbar sind. Zusätzlich ist die manuelle Eingabe weiter möglich. Die API-Abfrage erfolgt nur einmal und Fehler beim Laden der Liste erscheinen als Hinweis im Dialog. Die Filterbezeichnung ist optional und kann per Checkbox eingeblendet werden. Parameter können aus Vorschlägen gewählt oder namentlich eingegeben werden. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Für jede Dimension sollte ein eigener Parameter verwendet werden; das Tableau Set wird weiterhin über die Marks-Karte verbunden.
 
 ## Install
 

@@ -12,19 +12,26 @@
   <h1>Hierarchiefilter konfigurieren</h1>
   <p class="intro">Diese Einstellungen gelten für diese Filterinstanz im Tableau-Workbook.</p>
   <form id="config-form">
-    <label for="mode-parameter">Tableau-Modusparameter</label>
-    <input id="mode-parameter" list="mode-parameter-options" type="text"
-      autocomplete="off" spellcheck="false" required
-      placeholder="Parameter auswählen oder Namen eingeben">
-    <datalist id="mode-parameter-options"></datalist>
-    <p class="hint">Wähle einen Vorschlag oder gib den Namen eines Parameters ein, der die Werte ALLE, AUSWAHL und KEINE unterstützt.</p>
+    <label for="mode-choice">Tableau-Modusparameter auswählen</label>
+    <select id="mode-choice" aria-describedby="mode-choice-info">
+      <option value="">– Verfügbare Parameter –</option>
+    </select>
+    <p id="mode-choice-info" class="hint" role="status"></p>
+    <label for="mode-parameter">Oder Parameternamen eingeben</label>
+    <input id="mode-parameter" type="text" autocomplete="off"
+      spellcheck="false" required placeholder="z. B. p.kostenstellen_filter_modus">
+    <p class="hint">Muss die Werte ALLE, AUSWAHL und KEINE unterstützen.</p>
     <p id="parameter-hint" class="hint" role="status"></p>
-    <label for="summary-parameter">Zusammenfassungsparameter (optional)</label>
-    <input id="summary-parameter" list="summary-parameter-options" type="text"
-      autocomplete="off" spellcheck="false"
-      placeholder="z. B. p.kostenstellen_zusammenfassung">
-    <datalist id="summary-parameter-options"></datalist>
-    <p class="hint">Tableau-Zeichenfolge-Parameter mit „Alle“ als zulässigen Werten. Er erhält beim Anwenden die kompakte Auswahl, zum Beispiel „Produktion, Verwaltung › Einkauf“.</p>
+
+    <label for="summary-choice">Zusammenfassungsparameter auswählen (optional)</label>
+    <select id="summary-choice" aria-describedby="summary-choice-info">
+      <option value="">– Keinen Parameter auswählen –</option>
+    </select>
+    <p id="summary-choice-info" class="hint" role="status"></p>
+    <label for="summary-parameter">Oder Parameternamen eingeben (optional)</label>
+    <input id="summary-parameter" type="text" autocomplete="off"
+      spellcheck="false" placeholder="z. B. p.kostenstellen_zusammenfassung">
+    <p class="hint">Benötigt einen Zeichenfolge-Parameter mit zulässigen Werten „Alle“ (keine feste Liste).</p>
     <p id="summary-hint" class="hint" role="status"></p>
 
     <label class="checkbox-label" for="show-title">

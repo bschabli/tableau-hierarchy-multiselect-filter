@@ -45,18 +45,42 @@ export class TableauConnector {
     }
   }
 
+  /**
+   * Load parameter choices once for both configuration fields.
+   * Tableau exposes workbook parameters through Sheet.getParametersAsync().
+   * Include already resolved configured parameters if Tableau omits them
+   * from the bulk result (individual lookup remains authoritative).
+   */
+  async listParameterCandidates() {
+    if (!this.worksheet || typeof this.worksheet.getParametersAsync !== 'function') {
+      throw new Error('Tableau stellt die Parameterliste in dieser Ansicht nicht bereit.');
+    }
+    const found=await this.worksheet.getParametersAsync();
+    if (!Array.isArray(found)) {
+      throw new Error('Tableau hat keine gültige Parameterliste geliefert.');
+    }
+    const byName=new Map();
+    for (const param of found) {
+      if (param?.name) byName.set(param.name,param);
+    }
+    for (const param of [this.parameter,this.summaryParameter]) {
+      if (param?.name && !byName.has(param.name)) byName.set(param.name,param);
+    }
+    const candidates=[...byName.values()];
+    const order=(a,b)=>a.name.localeCompare(b.name,'de');
+    return {
+      parameters: candidates.map(parameterOption).filter(p=>p.name).sort(order),
+      summaryParameters: candidates.map(textParameterOption).filter(p=>p.name).sort(order),
+      returnedCount: found.length
+    };
+  }
+
   async listModeParameters() {
-    return (await this.worksheet.getParametersAsync())
-      .map(parameterOption)
-      .filter(item=>item.name)
-      .sort((a,b)=>a.name.localeCompare(b.name,'de'));
+    return (await this.listParameterCandidates()).parameters;
   }
 
   async listTextParameters() {
-    return (await this.worksheet.getParametersAsync())
-      .map(textParameterOption)
-      .filter(item => item.name)
-      .sort((a,b) => a.name.localeCompare(b.name,'de'));
+    return (await this.listParameterCandidates()).summaryParameters;
   }
 
   async chooseSummaryParameter(name) {

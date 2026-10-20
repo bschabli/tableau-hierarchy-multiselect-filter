@@ -55,3 +55,45 @@ test('rejects summary parameter with same name as mode', async () => {
   await assert.rejects(connector.chooseSummaryParameter('p.filter_modus'),
     /eigenen Tableau-Parameter/);
 });
+
+test('parameter suggestions are fetched once and categorized for both selectors',async()=>{
+  const connector=new TableauConnector();
+  let requests=0;
+  connector.worksheet={
+    async getParametersAsync() {
+      requests++;
+      return [
+        {name:'p.modus',dataType:'string',currentValue:{value:'AUSWAHL'},
+          allowableValues:{type:'list',allowableValues:[
+            {value:'ALLE'},{value:'AUSWAHL'},{value:'KEINE'}]}},
+        {name:'p.zusammenfassung',dataType:'string',currentValue:{value:'Keine'},
+          allowableValues:{type:'all'}},
+        {name:'p.anzahl',dataType:'int',currentValue:{value:5}}
+      ];
+    }
+  };
+  const result=await connector.listParameterCandidates();
+  assert.equal(requests,1);
+  assert.equal(result.returnedCount,3);
+  assert.equal(result.parameters.find(p=>p.name==='p.modus').valid,true);
+  assert.equal(result.summaryParameters.find(p=>p.name==='p.zusammenfassung').valid,true);
+  assert.equal(result.summaryParameters.find(p=>p.name==='p.anzahl').valid,false);
+});
+
+test('already configured parameter remains a suggestion if bulk list is incomplete',async()=>{
+  const connector=new TableauConnector();
+  connector.worksheet={async getParametersAsync(){return [];}};
+  connector.parameter={name:'p.vorhanden',dataType:'string',currentValue:{value:'ALLE'},
+    allowableValues:{type:'list',allowableValues:[
+      {value:'ALLE'},{value:'AUSWAHL'},{value:'KEINE'}]}};
+  const result=await connector.listParameterCandidates();
+  assert.equal(result.returnedCount,0);
+  assert.equal(result.parameters.length,1);
+  assert.equal(result.parameters[0].name,'p.vorhanden');
+});
+
+test('parameter API errors are reported and not replaced by empty suggestions',async()=>{
+  const connector=new TableauConnector();
+  connector.worksheet={async getParametersAsync(){throw new Error('API nicht verfügbar');}};
+  await assert.rejects(connector.listParameterCandidates(),/API nicht verfügbar/);
+});

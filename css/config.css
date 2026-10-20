@@ -19,3 +19,14 @@ input[list] { width: 100%; }
 .checkbox-label input { width: auto; margin: 0; }
 input:disabled { background: #eff2f6; color: #6d7b89; }
 #parameter-hint { min-height: 16px; }
+
+/* Real select controls work reliably in the embedded Tableau WebView. */
+select {
+  min-height: 33px;
+  cursor: pointer;
+}
+select:disabled { color: #7a8795; background: #eef2f5; cursor: default; }
+#mode-choice-info, #summary-choice-info {
+  margin-top: 0;
+  min-height: 12px;
+}
