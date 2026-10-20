@@ -1,6 +1,6 @@
 import {TableauConnector} from './tableau-connector.js';
 import {buildHierarchy, selectedLeafIds, getExpandedKeys} from './hierarchy.js';
-import {sameIds, effectiveSelection, resolveApplyState, hasPendingChanges} from './selection-state.js';
+import {hasPendingChanges} from './selection-state.js';
 import {SETTINGS_KEYS, normalizeFilterTitle} from './configuration.js';
 import {findSearchBranches, searchDisplayMode} from './tree-search.js';
 import {summarizeFilterSelection} from './filter-summary.js';
@@ -15,17 +15,13 @@ let tree = null;
 let leaves = [];
 let selected = new Set();        // Unconfirmed checkbox selection.
 let appliedSetIds = new Set();   // Last known Tableau Set membership.
-let mode = 'AUSWAHL';            // Draft filter mode.
-let appliedMode = 'AUSWAHL';     // Last known Tableau parameter.
 let busy = false;
 let ignoreEvents = false;
 let refreshTimer = null;
 let configured = false;
-let lastExplicitSelection = new Set();
 let beforeSearchExpansion = null;
 let searchTimer = null;
 let showOnlyMatches = false;
-const modeButtons = [...document.querySelectorAll('[data-mode]')];
 
 function updateOptionalTitle() {
   const show=tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true';
@@ -36,19 +32,15 @@ function updateOptionalTitle() {
 }
 
 function pending() {
-  return hasPendingChanges(mode, selected, appliedMode, appliedSetIds);
+  return hasPendingChanges(selected, appliedSetIds);
 }
 
 function summary() {
   const changed = pending();
   $('count').textContent = selected.size + ' von ' + leaves.length + ' ausgewählt';
-  const modeNames = {ALLE: 'Alle', AUSWAHL: 'Auswahl', KEINE: 'Keine'};
-  $('mode').textContent = 'Aktiv: ' + (modeNames[appliedMode] ?? appliedMode)
-    + (changed ? ' · noch nicht angewendet' : '');
-  for (const button of modeButtons) {
-    button.setAttribute('aria-pressed', String(button.dataset.mode === mode));
-    button.disabled = !configured || busy;
-  }
+  $('draft-status').textContent=changed ? 'Noch nicht angewendet' : '';
+  $('all').disabled=!configured || busy;
+  $('none').disabled=!configured || busy;
   $('search-query').disabled = !configured || busy;
   $('search-only').disabled = !configured || busy;
   $('expand-all').disabled = !configured || busy;
@@ -122,8 +114,6 @@ function createTree(resetExpansion = false) {
       select: () => {
         if (ignoreEvents || busy) return;
         selected = selectedLeafIds(tree);
-        lastExplicitSelection = new Set(selected);
-        mode = 'AUSWAHL';
         summary();
         status('Auswahl geändert – noch nicht angewendet.');
       }
@@ -226,15 +216,7 @@ function scheduleRefresh() {
   refreshTimer = setTimeout(() => reload(), 450);
 }
 
-const connector = new TableauConnector({
-  onDataChanged: scheduleRefresh,
-  onModeChanged: value => {
-    const hadPending = pending();
-    appliedMode = value;
-    if (!hadPending && !busy) scheduleRefresh();
-    summary();
-  }
-});
+const connector=new TableauConnector({onDataChanged:scheduleRefresh});
 
 async function reload(force = false) {
   if (!configured || busy || (pending() && !force)) return;
@@ -243,10 +225,7 @@ async function reload(force = false) {
     const snapshot = await connector.readState();
     leaves = snapshot.leaves;
     appliedSetIds = new Set(snapshot.selectedIds);
-    appliedMode = snapshot.mode;
-    mode = snapshot.mode;
-    selected = effectiveSelection(mode, appliedSetIds);
-    if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
+    selected=new Set(appliedSetIds);
     createTree(force);
     status('Auswahl aktualisiert.');
   } catch (error) {
@@ -256,112 +235,59 @@ async function reload(force = false) {
   }
 }
 
-function stageMode(nextMode) {
-  if (!configured || busy || !tree ||
-      !['ALLE', 'AUSWAHL', 'KEINE'].includes(nextMode)) return;
-  if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
-  ignoreEvents = true;
+/** Alle/Keine only edit the current draft. */
+function stageAll(checked) {
+  if(!configured||busy||!tree) return;
+  ignoreEvents=true;
   try {
-    mode = nextMode;
-    if (nextMode === 'AUSWAHL') {
-      selected = new Set(lastExplicitSelection);
-      // Rebuild the checkbox states without losing the expanded nodes.
-      createTree();
-    } else {
-      const all = nextMode === 'ALLE';
-      tree.selectAll(all);
-      selected = all ? new Set(leaves.map(leaf => leaf.id)) : new Set();
-    }
-  } finally {
-    ignoreEvents = false;
-  }
+    tree.selectAll(checked);
+    selected=checked ? new Set(leaves.map(leaf=>leaf.id)) : new Set();
+  } finally {ignoreEvents=false;}
   summary();
-  status(nextMode === 'KEINE'
-    ? 'Keine ausgewählt – noch nicht angewendet.'
-    : nextMode === 'ALLE'
-      ? 'Alle ausgewählt – noch nicht angewendet.'
-      : 'Modus geändert – noch nicht angewendet.');
+  status(checked ? 'Alle ausgewählt – noch nicht angewendet.'
+    : 'Keine ausgewählt – noch nicht angewendet.');
 }
 
 async function apply() {
-  if (!configured || busy || !tree || !pending()) return;
+  if(!configured||busy||!tree||!pending()) return;
   lock(true);
   try {
-    const intended = resolveApplyState(mode, selected, leaves);
-    const setChanged = !sameIds(intended.setIds, appliedSetIds);
-
-    if (setChanged) {
-      if (intended.setIds.size === 0) {
-        // A Tableau Set Action with "Keep set values" cannot clear a Set.
-        // Trigger an actual selection-cleared event, which requires
-        // "Remove all values from set" in the Tableau Set Action.
-        await connector.clearSetViaSelection(leaves);
-
-        // Confirm the Set became empty before reporting success or
-        // updating the mode parameter. Tableau actions can be asynchronous.
-        let cleared = false;
-        for (let attempt = 0; attempt < 4; attempt++) {
-          if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 250));
-          const current = await connector.readState();
-          if (current.selectedIds.size === 0) {
-            cleared = true;
-            break;
-          }
-        }
-        if (!cleared) {
-          throw new Error(
-            'Das Set wurde nicht geleert. Stelle bei der Tableau Set Action ' +
-            'unter „Auswahl aufheben“ die Option „Alle Werte aus Set entfernen“ ein.'
-          );
-        }
-      } else {
-        await connector.selectLeaves(intended.setIds, leaves);
+    const intendedIds=new Set(selected);
+    if(intendedIds.size===0) {
+      await connector.clearSetViaSelection(leaves);
+      let cleared=false;
+      for(let attempt=0;attempt<4;attempt++) {
+        if(attempt>0) await new Promise(resolve=>setTimeout(resolve,250));
+        const state=await connector.readState();
+        if(state.selectedIds.size===0) {cleared=true;break;}
       }
-      appliedSetIds = new Set(intended.setIds);
+      if(!cleared) throw new Error('Das Set wurde nicht geleert. '+
+        'Stelle bei der Set Action „Auswahl aufheben“ auf „Alle Werte aus Set entfernen“.');
+    } else {
+      await connector.selectLeaves(intendedIds,leaves);
     }
-
-    if (intended.mode !== appliedMode) {
-      await connector.changeMode(intended.mode);
-    }
-    appliedMode = intended.mode;
-    mode = intended.mode;
-    selected = new Set(intended.checkedIds);
-    if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
-
-    // Programmatic tree selections are ignored by the select callback
-    // and must mirror the draft, without changing the Tableau Set again.
-    ignoreEvents = true;
-    try {
-      tree.selectAll(mode === 'ALLE');
-      if (mode === 'AUSWAHL') createTree();
-    } finally {
-      ignoreEvents = false;
-    }
+    appliedSetIds=new Set(intendedIds);
     summary();
     let summaryWarning='';
     try {
-      await connector.writeSummary(summarizeFilterSelection(leaves, intended.setIds));
-    } catch (error) {
-      console.error('[Hierarchy Filter] Zusammenfassung:', error);
+      await connector.writeSummary(summarizeFilterSelection(leaves,intendedIds));
+    } catch(error) {
+      console.error('[Hierarchy Filter] Zusammenfassung:',error);
       summaryWarning=' Zusammenfassung nicht aktualisiert: '+error.message;
     }
-    const successMessage=mode === 'ALLE'
-      ? 'Alle Werte ausgewählt und angewendet.'
-      : mode === 'KEINE' ? 'Keine Werte ausgewählt und angewendet.'
-        : selected.size + ' Werte ausgewählt und angewendet.';
-    status(successMessage + summaryWarning, !!summaryWarning);
-  } catch (error) {
-    status('Anwenden fehlgeschlagen: ' + error.message, true);
-  } finally {
-    lock(false);
-  }
+    const success=intendedIds.size===0 ? 'Keine Werte ausgewählt und angewendet.'
+      : intendedIds.size===leaves.length ? 'Alle Werte ausgewählt und angewendet.'
+        : intendedIds.size+' Werte ausgewählt und angewendet.';
+    status(success+summaryWarning,!!summaryWarning);
+  } catch(error) {
+    status('Anwenden fehlgeschlagen: '+error.message,true);
+  } finally {lock(false);}
 }
 
 $('apply').addEventListener('click', apply);
 $('reload').addEventListener('click', () => reload(true));
-for (const button of modeButtons) {
-  button.addEventListener('click', () => stageMode(button.dataset.mode));
-}
+$('all').addEventListener('click',()=>stageAll(true));
+$('none').addEventListener('click',()=>stageAll(false));
 $('search-only').addEventListener('click', () => {
   showOnlyMatches = !showOnlyMatches;
   summary();
@@ -393,100 +319,80 @@ $('search-query').addEventListener('keydown', event => {
 });
 
 async function configure() {
-  if (busy) return;
+  if(busy) return;
   try {
-    // Read the Tableau parameter list only once. Never mask an API exception
-    // as an apparently valid but empty set of suggestions.
-    let candidates={parameters:[],summaryParameters:[],returnedCount:0};
+    let candidates={summaryParameters:[],returnedCount:0};
     let parameterLookupError='';
-    try {
-      candidates=await connector.listParameterCandidates();
-    } catch (error) {
-      parameterLookupError=error?.message || String(error);
-      console.error('[Hierarchy Filter] Parameterliste:', error);
+    try {candidates=await connector.listParameterCandidates();}
+    catch(error) {
+      parameterLookupError=error?.message||String(error);
+      console.error('[Hierarchy Filter] Parameterliste:',error);
     }
-    const payload = {
-      parameterName: tableau.extensions.settings.get(SETTINGS_KEYS.parameter) || '',
-      title: tableau.extensions.settings.get(SETTINGS_KEYS.title) || '',
-      showTitle: tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true',
-      summaryParameterName: tableau.extensions.settings.get(SETTINGS_KEYS.summaryParameter) || '',
-      summaryParameters: candidates.summaryParameters,
-      parameters: candidates.parameters,
-      returnedParameterCount: candidates.returnedCount,
+    const payload={
+      title:tableau.extensions.settings.get(SETTINGS_KEYS.title)||'',
+      showTitle:tableau.extensions.settings.get(SETTINGS_KEYS.showTitle)==='true',
+      summaryParameterName:
+        tableau.extensions.settings.get(SETTINGS_KEYS.summaryParameter)||'',
+      summaryParameters:candidates.summaryParameters,
+      returnedParameterCount:candidates.returnedCount,
       parameterLookupError
     };
-    const response = await tableau.extensions.ui.displayDialogAsync(
-      new URL('./config.html', window.location.href).href,
-      JSON.stringify(payload),
-      {height: 560, width: 490}
+    const response=await tableau.extensions.ui.displayDialogAsync(
+      new URL('./config.html',window.location.href).href,
+      JSON.stringify(payload),{height:430,width:490}
     );
-    if (!response || response === 'CANCEL') return;
-    const next = JSON.parse(response);
-    await connector.chooseParameter(next.parameterName);
-    await connector.chooseSummaryParameter(next.summaryParameterName || '');
-    // Save only after both parameters have passed validation.
-    tableau.extensions.settings.set(SETTINGS_KEYS.parameter, next.parameterName);
-    tableau.extensions.settings.set(SETTINGS_KEYS.summaryParameter, next.summaryParameterName || '');
-    tableau.extensions.settings.set(SETTINGS_KEYS.title, String(next.title??'').trim().slice(0,80));
-    tableau.extensions.settings.set(SETTINGS_KEYS.showTitle, String(next.showTitle===true));
+    if(!response||response==='CANCEL') return;
+    const next=JSON.parse(response);
+    await connector.chooseSummaryParameter(next.summaryParameterName||'');
+    tableau.extensions.settings.set(
+      SETTINGS_KEYS.summaryParameter,next.summaryParameterName||''
+    );
+    tableau.extensions.settings.set(
+      SETTINGS_KEYS.title,String(next.title??'').trim().slice(0,80)
+    );
+    tableau.extensions.settings.set(
+      SETTINGS_KEYS.showTitle,String(next.showTitle===true)
+    );
     await tableau.extensions.settings.saveAsync();
     updateOptionalTitle();
-    configured = true;
-    mode = connector.mode;
-    selected = new Set();
-    leaves = [];
-    appliedSetIds = new Set();
-    appliedMode = mode;
-    await reload(true);
-    if (connector.summaryParameter) {
-      await connector.writeSummary(summarizeFilterSelection(leaves, appliedSetIds));
+    if(connector.summaryParameter) {
+      await connector.writeSummary(summarizeFilterSelection(leaves,appliedSetIds));
     }
+    status('Einstellungen gespeichert.');
   } catch(error) {
-    if (error?.errorCode === 'DialogClosedByUser' ||
-        String(error?.message || '').includes('DialogClosedByUser')) return;
-    status('Konfiguration: ' + error.message, true);
+    if(error?.errorCode==='DialogClosedByUser'||
+      String(error?.message||'').includes('DialogClosedByUser')) return;
+    status('Konfiguration: '+error.message,true);
   }
 }
 
 // In a Viz Extension, Tableau exposes configure via "Format Extension" on
 // the Marks card. No configuration button is rendered in the filter itself.
 async function start() {
-  window.__hierarchyAppStarted = true;
+  window.__hierarchyAppStarted=true;
   status('Verbinde mit Tableau ...');
   try {
-    const handshake = connector.initialize(configure);
-    handshake.catch(error => console.error('[Hierarchy Filter] Tableau handshake:', error));
-    const initialMode = await Promise.race([
+    const handshake=connector.initialize(configure);
+    handshake.catch(error=>console.error('[Hierarchy Filter] Tableau handshake:',error));
+    await Promise.race([
       handshake,
-      new Promise((_, reject) => setTimeout(
-        () => reject(new Error('Tableau antwortet seit 15 Sekunden nicht.')), 15000))
+      new Promise((_,reject)=>setTimeout(
+        ()=>reject(new Error('Tableau antwortet seit 15 Sekunden nicht.')),15000))
     ]);
     updateOptionalTitle();
-    configured = initialMode !== null;
-    if(!configured) {
-      status(connector.configurationError ||
-        'Noch nicht konfiguriert. Öffne den Einstellungsdialog …');
-      summary();
-      // First-run fallback: no permanent configuration button in the viz.
-      await configure();
-      if (!configured) {
-        status('Konfiguration erforderlich: In der Marks-Karte „Format Extension“ wählen. ' +
-          'Wenn die Schaltfläche fehlt, die Extension mit der neuen .trex-Datei erneut hinzufügen.');
-      }
-      return;
-    }
-    mode = initialMode;
-    status('Tableau verbunden. Lese Daten und Set ...');
+    configured=true;
+    status('Tableau verbunden. Lese Auswahl aus dem Set ...');
     await reload(true);
-    if (connector.summaryConfigurationError) {
-      status('Auswahl geladen, aber der Zusammenfassungsparameter ist ungültig: ' +
-        connector.summaryConfigurationError, true);
+    if(connector.summaryConfigurationError) {
+      status('Auswahl geladen, aber der Zusammenfassungsparameter ist ungültig: '+
+        connector.summaryConfigurationError,true);
     }
-  } catch (error) {
-    console.error('[Hierarchy Filter] Startfehler:', error);
-    status('Initialisierung fehlgeschlagen: ' + (error?.message || String(error)), true);
+  } catch(error) {
+    console.error('[Hierarchy Filter] Startfehler:',error);
+    status('Initialisierung fehlgeschlagen: '+(error?.message||String(error)),true);
   }
 }
+
 start().catch(error => {
   console.error('[Hierarchy Filter] Unerwarteter Startfehler:', error);
   status('Startfehler: ' + (error?.message || String(error)), true);

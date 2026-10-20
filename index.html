@@ -14,10 +14,9 @@
 <body class="tableau-worksheet">
   <div class="heading" id="heading" hidden><strong id="filter-title">Hierarchiefilter</strong></div>
   <div class="toolbar">
-    <div class="mode-buttons" role="group" aria-label="Filtermodus">
-      <button type="button" data-mode="ALLE" aria-pressed="false" disabled>Alle</button>
-      <button type="button" data-mode="AUSWAHL" aria-pressed="false" disabled>Auswahl</button>
-      <button type="button" data-mode="KEINE" aria-pressed="false" disabled>Keine</button>
+    <div class="mode-buttons" role="group" aria-label="Auswahlaktionen">
+      <button id="all" type="button" disabled>Alle</button>
+      <button id="none" type="button" disabled>Keine</button>
     </div>
     <button id="apply" type="button" disabled>Anwenden</button>
     <button id="reload" class="icon-button" type="button" aria-label="Neu einlesen" title="Neu einlesen"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 11a9 9 0 1 1 2.6 6.3"/><path d="M3 4v7h7"/></svg></button>
@@ -37,7 +36,7 @@
   <p id="status" role="status">Initialisiere ...</p>
   <div class="metrics">
     <span id="count"></span><span id="search-count" role="status" aria-live="polite"></span>
-    <span id="mode"></span>
+    <span id="draft-status"></span>
   </div>
   <div id="rows" class="wb-skeleton wb-initializing"></div>
 </body>

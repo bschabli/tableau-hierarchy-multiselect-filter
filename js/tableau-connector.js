@@ -1,19 +1,14 @@
-/** Tableau API, with a mode parameter chosen independently per Viz instance. */
+/** Tableau connection: only the Set Action is required. */
 import {rowToLeaf,readLeafSelection,validateLeaves} from './core.js';
-import {parameterOption,textParameterOption,SETTINGS_KEYS,MODE_VALUES} from './configuration.js';
+import {textParameterOption,SETTINGS_KEYS} from './configuration.js';
 
 export class TableauConnector {
-  constructor({onDataChanged,onModeChanged}={}) {
+  constructor({onDataChanged}={}) {
     this.worksheet=null;
-    this.parameter=null;
-    this.parameterName='';
     this.summaryParameter=null;
     this.summaryParameterName='';
     this.summaryConfigurationError='';
-    this.configurationError='';
     this.onDataChanged=onDataChanged??(()=>{});
-    this.onModeChanged=onModeChanged??(()=>{});
-    this.parameterHandler=null;
   }
 
   async initialize(onConfigure) {
@@ -23,87 +18,52 @@ export class TableauConnector {
     this.worksheet.addEventListener(
       tableau.TableauEventType.SummaryDataChanged,()=>this.onDataChanged()
     );
-    const savedName=tableau.extensions.settings.get(SETTINGS_KEYS.parameter);
-    if(!savedName) return null;
-    try {
-      await this.chooseParameter(savedName);
-      const summaryName=tableau.extensions.settings.get(SETTINGS_KEYS.summaryParameter);
-      if (summaryName) {
-        try {
-          await this.chooseSummaryParameter(summaryName);
-        } catch (error) {
-          // An optional removed parameter must never stop the primary filter.
-          this.summaryConfigurationError=error.message;
-          console.warn('[Hierarchy Filter] Zusammenfassung:', error);
-        }
+    const summaryName=tableau.extensions.settings.get(SETTINGS_KEYS.summaryParameter);
+    if(summaryName) {
+      try {await this.chooseSummaryParameter(summaryName);}
+      catch(error) {
+        this.summaryConfigurationError=error.message;
+        console.warn('[Hierarchy Filter] Zusammenfassung:',error);
       }
-      return this.mode;
-    } catch(error) {
-      // Don't block Configure if the saved parameter has been renamed.
-      this.configurationError=error.message;
-      return null;
     }
   }
 
-  /**
-   * Load parameter choices once for both configuration fields.
-   * Tableau exposes workbook parameters through Sheet.getParametersAsync().
-   * Include already resolved configured parameters if Tableau omits them
-   * from the bulk result (individual lookup remains authoritative).
-   */
   async listParameterCandidates() {
-    if (!this.worksheet || typeof this.worksheet.getParametersAsync !== 'function') {
+    if(!this.worksheet||typeof this.worksheet.getParametersAsync!=='function')
       throw new Error('Tableau stellt die Parameterliste in dieser Ansicht nicht bereit.');
-    }
     const found=await this.worksheet.getParametersAsync();
-    if (!Array.isArray(found)) {
+    if(!Array.isArray(found))
       throw new Error('Tableau hat keine gültige Parameterliste geliefert.');
-    }
     const byName=new Map();
-    for (const param of found) {
-      if (param?.name) byName.set(param.name,param);
-    }
-    for (const param of [this.parameter,this.summaryParameter]) {
-      if (param?.name && !byName.has(param.name)) byName.set(param.name,param);
-    }
-    const candidates=[...byName.values()];
-    const order=(a,b)=>a.name.localeCompare(b.name,'de');
+    for(const param of found) if(param?.name) byName.set(param.name,param);
+    if(this.summaryParameter?.name&&!byName.has(this.summaryParameter.name))
+      byName.set(this.summaryParameter.name,this.summaryParameter);
     return {
-      parameters: candidates.map(parameterOption).filter(p=>p.name).sort(order),
-      summaryParameters: candidates.map(textParameterOption).filter(p=>p.name).sort(order),
-      returnedCount: found.length
+      summaryParameters:[...byName.values()].map(textParameterOption)
+        .filter(item=>item.name).sort((a,b)=>a.name.localeCompare(b.name,'de')),
+      returnedCount:found.length
     };
-  }
-
-  async listModeParameters() {
-    return (await this.listParameterCandidates()).parameters;
-  }
-
-  async listTextParameters() {
-    return (await this.listParameterCandidates()).summaryParameters;
   }
 
   async chooseSummaryParameter(name) {
     const normalized=String(name??'').trim();
-    if (!normalized) {
+    if(!normalized) {
       this.summaryParameter=null;
       this.summaryParameterName='';
       this.summaryConfigurationError='';
       return;
     }
-    if (normalized===this.parameterName)
-      throw new Error('Die Zusammenfassung benötigt einen eigenen Tableau-Parameter.');
     let candidate=null;
-    if (typeof this.worksheet.findParameterAsync==='function')
+    if(typeof this.worksheet.findParameterAsync==='function')
       candidate=await this.worksheet.findParameterAsync(normalized);
-    if (!candidate) {
+    if(!candidate) {
       const parameters=await this.worksheet.getParametersAsync();
       candidate=parameters.find(p=>p.name===normalized);
     }
-    if (!candidate)
+    if(!candidate)
       throw new Error('Zusammenfassungsparameter "'+normalized+'" nicht gefunden.');
     const option=textParameterOption(candidate);
-    if (!option.valid)
+    if(!option.valid)
       throw new Error('Zusammenfassungsparameter "'+normalized+'": '+option.reason);
     this.summaryParameter=candidate;
     this.summaryParameterName=normalized;
@@ -111,54 +71,9 @@ export class TableauConnector {
   }
 
   async writeSummary(value) {
-    if (!this.summaryParameter) return false;
+    if(!this.summaryParameter) return false;
     await this.summaryParameter.changeValueAsync(String(value));
     return true;
-  }
-
-  async chooseParameter(name) {
-    const normalized=String(name??'').trim();
-    // A parameter can be absent from the available-parameters list.
-    // Resolve explicitly by name before falling back to the collection.
-    let candidate=null;
-    if(typeof this.worksheet.findParameterAsync==='function') {
-      candidate=await this.worksheet.findParameterAsync(normalized);
-    }
-    if(!candidate) {
-      const parameters=await this.worksheet.getParametersAsync();
-      candidate=parameters.find(p=>p.name===normalized);
-    }
-    if(!candidate) throw new Error('Tableau-Parameter "'+normalized+'" nicht gefunden. Falls er neu angelegt wurde, verwende ihn zunächst in einem berechneten Feld im Workbook.');
-    const option=parameterOption(candidate);
-    if(!option.valid) throw new Error('Parameter "'+normalized+'" ist ungeeignet: '+option.reason);
-    if(this.parameter&&this.parameterHandler) {
-      this.parameter.removeEventListener(tableau.TableauEventType.ParameterChanged,this.parameterHandler);
-    }
-    this.parameter=candidate;
-    this.parameterName=normalized;
-    this.configurationError='';
-    this.parameterHandler=async event=>{
-      try {
-        this.parameter=await event.getParameterAsync();
-        this.onModeChanged(this.mode);
-      } catch(error) {
-        console.warn('[Hierarchy Filter] ParameterChanged',error);
-      }
-    };
-    this.parameter.addEventListener(tableau.TableauEventType.ParameterChanged,this.parameterHandler);
-    return this.mode;
-  }
-
-  get mode() {
-    if(!this.parameter) throw new Error('Bitte zuerst einen Modusparameter konfigurieren.');
-    return String(this.parameter.currentValue?.value??'AUSWAHL');
-  }
-
-  async changeMode(value) {
-    if(!this.parameter) throw new Error('Bitte zuerst einen Modusparameter konfigurieren.');
-    if(!MODE_VALUES.includes(value)) throw new Error('Unbekannter Filtermodus: '+value);
-    await this.parameter.changeValueAsync(value);
-    this.onModeChanged(value);
   }
 
   async getEncodingMap() {
@@ -174,9 +89,10 @@ export class TableauConnector {
   }
 
   async readState() {
-    if(!this.parameter) throw new Error('Bitte zuerst einen Modusparameter konfigurieren.');
     const encodings=await this.getEncodingMap();
-    const reader=await this.worksheet.getSummaryDataReaderAsync(undefined,{ignoreSelection:true});
+    const reader=await this.worksheet.getSummaryDataReaderAsync(
+      undefined,{ignoreSelection:true}
+    );
     const leaves=[];
     try {
       for(let pageIndex=0;pageIndex<reader.pageCount;pageIndex++){
@@ -187,30 +103,20 @@ export class TableauConnector {
           leaves.push(rowToLeaf(row,encodings,leaves.length+1));
         }
       }
-    } finally {
-      await reader.releaseAsync();
-    }
+    } finally {await reader.releaseAsync();}
     validateLeaves(leaves);
-    return {leaves,selectedIds:readLeafSelection(leaves),mode:this.mode};
+    return {leaves,selectedIds:readLeafSelection(leaves)};
   }
 
-  /**
-   * Clear a Set through the Tableau Set Action configured with
-   * "Clearing the selection: Remove all values from set".
-   * A one-mark selection first ensures clearing creates a real event.
-   */
   async clearSetViaSelection(leaves) {
-    if (!leaves.length) {
+    if(!leaves.length)
       throw new Error('Keine Werte verfügbar, um das Tableau Set zurückzusetzen.');
-    }
-    await this.worksheet.selectTuplesAsync(
-      [leaves[0].tupleId], tableau.SelectOptions.Simple
-    );
-    if (typeof this.worksheet.clearSelectedMarksAsync === 'function') {
+    // Requires "Clearing the selection: Remove all values from set" in Tableau.
+    await this.worksheet.selectTuplesAsync([leaves[0].tupleId],tableau.SelectOptions.Simple);
+    if(typeof this.worksheet.clearSelectedMarksAsync==='function') {
       await this.worksheet.clearSelectedMarksAsync();
     } else {
-      // Older Viz Extension implementations may lack the explicit method.
-      await this.worksheet.selectTuplesAsync([], tableau.SelectOptions.Simple);
+      await this.worksheet.selectTuplesAsync([],tableau.SelectOptions.Simple);
     }
   }
 

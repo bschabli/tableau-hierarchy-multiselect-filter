@@ -1,50 +1,30 @@
 <!doctype html>
-<html lang="de">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Hierarchiefilter konfigurieren</title>
-  <link rel="stylesheet" href="./css/config.css">
-  <script src="./js/tableau.extensions.1.latest.min.js"></script>
-  <script defer type="module" src="./js/config-dialog.js"></script>
-</head>
-<body>
-  <h1>Hierarchiefilter konfigurieren</h1>
-  <p class="intro">Diese Einstellungen gelten für diese Filterinstanz im Tableau-Workbook.</p>
-  <form id="config-form">
-    <label for="mode-choice">Tableau-Modusparameter auswählen</label>
-    <select id="mode-choice" aria-describedby="mode-choice-info">
-      <option value="">– Verfügbare Parameter –</option>
-    </select>
-    <p id="mode-choice-info" class="hint" role="status"></p>
-    <label for="mode-parameter">Oder Parameternamen eingeben</label>
-    <input id="mode-parameter" type="text" autocomplete="off"
-      spellcheck="false" required placeholder="z. B. p.kostenstellen_filter_modus">
-    <p class="hint">Muss die Werte ALLE, AUSWAHL und KEINE unterstützen.</p>
-    <p id="parameter-hint" class="hint" role="status"></p>
-
-    <label for="summary-choice">Zusammenfassungsparameter auswählen (optional)</label>
-    <select id="summary-choice" aria-describedby="summary-choice-info">
-      <option value="">– Keinen Parameter auswählen –</option>
-    </select>
-    <p id="summary-choice-info" class="hint" role="status"></p>
-    <label for="summary-parameter">Oder Parameternamen eingeben (optional)</label>
-    <input id="summary-parameter" type="text" autocomplete="off"
-      spellcheck="false" placeholder="z. B. p.kostenstellen_zusammenfassung">
-    <p class="hint">Benötigt einen Zeichenfolge-Parameter mit zulässigen Werten „Alle“ (keine feste Liste).</p>
-    <p id="summary-hint" class="hint" role="status"></p>
-
-    <label class="checkbox-label" for="show-title">
-      <input id="show-title" type="checkbox"> Titel in der Extension anzeigen
-    </label>
-    <label for="filter-title">Titel (optional)</label>
-    <input id="filter-title" type="text" maxlength="80" placeholder="z. B. Kostenstelle">
-
-    <p id="config-status" class="hint" role="status"></p>
-    <div class="actions">
-      <button type="button" id="cancel" class="secondary">Abbrechen</button>
-      <button type="submit" id="save">Speichern</button>
-    </div>
-  </form>
-</body>
-</html>
+<html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hierarchiefilter konfigurieren</title>
+<link rel="stylesheet" href="./css/config.css">
+<script src="./js/tableau.extensions.1.latest.min.js"></script>
+<script defer type="module" src="./js/config-dialog.js"></script>
+</head><body>
+<h1>Hierarchiefilter konfigurieren</h1>
+<p class="intro">Einstellungen nur für diese Filterinstanz im Tableau-Workbook.</p>
+<form id="config-form">
+<label for="summary-choice">Zusammenfassungsparameter (optional)</label>
+<select id="summary-choice"><option value="">– Keinen Parameter verwenden –</option></select>
+<p id="summary-choice-info" class="hint" role="status"></p>
+<label for="summary-parameter">Oder Parameternamen eingeben</label>
+<input id="summary-parameter" type="text" autocomplete="off" spellcheck="false"
+ placeholder="z. B. p.kostenstellen_zusammenfassung">
+<p class="hint">Tableau-Zeichenfolge-Parameter mit zulässigen Werten „Alle“ (keine feste Liste).</p>
+<p id="summary-hint" class="hint" role="status"></p>
+<label class="checkbox-label" for="show-title">
+<input id="show-title" type="checkbox"> Titel in der Extension anzeigen
+</label>
+<label for="filter-title">Titel (optional)</label>
+<input id="filter-title" type="text" maxlength="80" placeholder="z. B. Kostenstelle">
+<p id="config-status" class="hint" role="status"></p>
+<div class="actions">
+<button type="button" id="cancel" class="secondary">Abbrechen</button>
+<button type="submit" id="save">Speichern</button>
+</div>
+</form></body></html>
