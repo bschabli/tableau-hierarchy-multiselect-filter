@@ -29,13 +29,27 @@ test('replacement icons remain when reload hint changes',()=>{
 });
 
 test('Wunderbaum row CSS and virtualized row height match',()=>{
-  assert.match(js,/rowHeightPx: 28/);
-  assert.match(css,/--wb-icon-outer-height: 22px/);
-  assert.match(css,/height: 22px/);
+  assert.match(js,/rowHeightPx: 26/);
+  assert.match(css,/--wb-icon-outer-height: 20px/);
+  assert.match(css,/height: 20px/);
+  assert.match(css,/--wb-row-outer-height: 26px/);
 });
 
 test('search and tree tool controls are on one compact row',()=>{
   assert.match(html,/<div class="search-bar">[\s\S]*class="search-controls"/);
   assert.doesNotMatch(html,/class="tree-actions"/);
   assert.doesNotMatch(js,/\$\('pending'\)/);
+});
+
+test('simple tree removes persistent frame and row separators',()=>{
+  assert.match(css,/div\.wunderbaum:focus-within/);
+  assert.match(css,/border: 0/);
+  assert.match(css,/div\.wunderbaum div\.wb-node-list div\.wb-row/);
+  assert.match(css,/outline: 1px solid #b3cce5/);
+});
+
+test('explicit reload resets expansion; passive updates preserve it',()=>{
+  assert.match(js,/function createTree\(resetExpansion = false\)/);
+  assert.match(js,/const expandedKeys = resetExpansion/);
+  assert.match(js,/createTree\(force\)/);
 });

@@ -26,9 +26,9 @@ export function buildHierarchy(leaves, selectedIds = new Set(), expandedKeys = n
       if (!parent) {
         parent = {
           key, title: label, folder: true,
-          expanded: expandedKeys === null
-            ? prefix.length === 1
-            : expandedKeys.has(key),
+          // Fully collapsed on the first load. Explicit saved keys
+          // are only used for an in-session tree refresh.
+          expanded: expandedKeys?.has(key) ?? false,
           children: []
         };
         groups.set(key, parent);

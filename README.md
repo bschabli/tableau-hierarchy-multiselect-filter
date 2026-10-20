@@ -11,7 +11,9 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - **Keine** clears every checkbox and, on **Anwenden**, empties the Tableau Set (parameter `KEINE`).
 - **Auswahl** uses exactly the checked values, including an empty manual selection.
 - **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits
-- Expand/Collapse state and scroll position are preserved on Set refresh; rows use Wunderbaum's matching 32px virtual row height.
+- Initial opening and deliberate **Neu einlesen** start with the entire tree collapsed.
+- Automatic Set refreshes and checkbox/mode changes retain the user's open branches and scroll position.
+- Borderless, separator-free simple tree with 26px virtual rows, subtle hover and keyboard focus highlights.
 - Tableau Set Actions via `selectTuplesAsync`
 - Read Set membership back from Tableau to restore selection
 - Compact hierarchy search (case-insensitive partial title matches), highlights matching text
@@ -21,7 +23,7 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - **Nur Treffer** toggles Wunderbaum's hide filter: only matches and their ancestor paths remain visible
 - Compact icon tools for expand/collapse all and search-only mode, with keyboard focus, aria labels and tooltips
 - **Alle öffnen / Alle schließen** expands or collapses the entire tree without changing selected values
-- Compact 28px tree rows and tighter button spacing for narrow Tableau dashboard containers
+- Compact 26px tree rows and tighter button spacing for narrow Tableau dashboard containers
 - Missing FIRST hierarchy levels become an "Ohne Zuordnung" root; deeper NULL values are removed to keep ragged paths compact
 - Optional second per-instance Tableau **text parameter** receives a compact, hierarchy-aware filter summary on **Anwenden** (and when configuring that parameter)
 - Mode selection uses three buttons (Alle, Auswahl, Keine); changes remain local until **Anwenden**

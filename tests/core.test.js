@@ -274,3 +274,34 @@ test('a missing hierarchy shelf remains invalid rather than fabricating a root',
   assert.deepEqual(leaf.levels,[]);
   assert.throws(()=>buildHierarchy([leaf]),/Hierarchiestufen fehlen/);
 });
+
+test('every hierarchy branch starts collapsed on initial load',()=>{
+  const {roots}=buildHierarchy([
+    {id:'a',levels:['A','B','C']},
+    {id:'b',levels:['A','B','D']},
+    {id:'c',levels:['X','Y']}
+  ]);
+  const visit=nodes=>{
+    for(const node of nodes) {
+      if (node.key.startsWith('p:')) assert.equal(node.expanded,false);
+      visit(node.children || []);
+    }
+  };
+  visit(roots);
+});
+
+test('explicit empty expansion state remains fully collapsed',()=>{
+  const {roots}=buildHierarchy([{id:'a',levels:['A','B','C']}],
+    new Set(),new Set());
+  assert.equal(roots[0].expanded,false);
+  assert.equal(roots[0].children[0].expanded,false);
+});
+
+test('expanded branches are restored from an in-session snapshot only',()=>{
+  const leaves=[{id:'a',levels:['A','B','C']}];
+  const first=buildHierarchy(leaves);
+  const key=first.roots[0].key;
+  const next=buildHierarchy(leaves,new Set(),new Set([key]));
+  assert.equal(next.roots[0].expanded,true);
+  assert.equal(next.roots[0].children[0].expanded,false);
+});

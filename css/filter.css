@@ -84,11 +84,11 @@ div.wunderbaum span.wb-node i.wb-expander::before {
   height: 15px;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid #75859a;
-  border-radius: 3px;
-  font-size: 12px;
+  border: 1px solid #8898aa;
+  border-radius: 2px;
+  font-size: 11px;
   line-height: 1;
-  font-weight: 700;
+  font-weight: 650;
   vertical-align: middle;
   background: white;
   color: white;
@@ -105,20 +105,54 @@ div.wunderbaum span.wb-node i.wb-expander::before {
   border-color: #2768af;
 }
 
-/* Compact Wunderbaum row (rowHeightPx: 28) matching virtual scrolling.
-   Checkbox glyphs get their own vertical space, so no lower edge is clipped. */
+/* Wunderbaum's virtualizer and CSS must use the same exact row height.
+   A 20px control fits into a 26px row with no clipped checkbox edges. */
 div.wunderbaum {
-  --wb-icon-outer-height: 22px;
-  --wb-icon-outer-width: 22px;
+  --wb-row-outer-height: 26px;
+  --wb-row-inner-height: 24px;
+  --wb-icon-outer-height: 20px;
+  --wb-icon-outer-width: 20px;
   --wb-icon-padding-y: 0px;
   --wb-icon-padding-x: 0px;
+  --wb-node-text-color: #334155;
+  --wb-hover-color: #f7f9fc;
+  --wb-active-color: transparent;
+  --wb-active-color-grayscale: transparent;
+  --wb-active-hover-color: #f7f9fc;
+  --wb-active-hover-color-grayscale: #f7f9fc;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  overflow-y: auto;
+}
+div.wunderbaum:focus,
+div.wunderbaum:focus-within {
+  border: 0;
+  box-shadow: none;
+}
+/* Simple tree: no permanent row lines, grid or colored row selection. */
+div.wunderbaum div.wb-node-list div.wb-row {
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+}
+div.wunderbaum div.wb-node-list div.wb-row:hover {
+  background: #f7f9fc !important;
+}
+div.wunderbaum div.wb-node-list div.wb-row.wb-focus {
+  outline: 1px solid #b3cce5;
+  outline-offset: -1px;
+}
+div.wunderbaum span.wb-col {
+  border-right: 0;
 }
 
 div.wunderbaum span.wb-node i.wb-checkbox,
 div.wunderbaum span.wb-node i.wb-expander {
   display: inline-flex;
-  height: 22px;
-  width: 22px;
+  height: 20px;
+  width: 20px;
   padding: 0;
   align-items: center;
   justify-content: center;
@@ -127,8 +161,8 @@ div.wunderbaum span.wb-node i.wb-expander {
 }
 
 div.wunderbaum span.wb-node i.wb-checkbox::before {
-  width: 15px;
-  height: 15px;
+  width: 14px;
+  height: 14px;
   line-height: 1;
   flex-shrink: 0;
 }

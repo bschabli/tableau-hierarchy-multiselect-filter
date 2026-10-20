@@ -71,15 +71,20 @@ function lock(value) {
   summary();
 }
 
-function createTree() {
+function createTree(resetExpansion = false) {
   if (!window.mar10?.Wunderbaum) {
     throw new Error('Die lokale Wunderbaum-Bibliothek konnte nicht geladen werden.');
   }
   ignoreEvents = true;
   try {
     // Recreating the tree on Set updates must not expand collapsed branches.
-    const expandedKeys = beforeSearchExpansion ?? getExpandedKeys(tree);
-    const previousScroll = $('rows').scrollTop;
+    // Manual 'Neu einlesen', initial load and reconfiguration start closed.
+    // Passive Tableau Set refreshes and mode changes keep user expansion.
+    const expandedKeys = resetExpansion
+      ? new Set()
+      : (beforeSearchExpansion ?? getExpandedKeys(tree));
+    if (resetExpansion) beforeSearchExpansion = null;
+    const previousScroll = resetExpansion ? 0 : $('rows').scrollTop;
     tree?.destroy();
     const {roots} = buildHierarchy(leaves, selected, expandedKeys);
     tree = new window.mar10.Wunderbaum({
@@ -101,7 +106,7 @@ function createTree() {
           }
         }
       },
-      rowHeightPx: 28,
+      rowHeightPx: 26,
       minExpandLevel: 0,
       icon: false,
       iconMap: {
@@ -242,7 +247,7 @@ async function reload(force = false) {
     mode = snapshot.mode;
     selected = effectiveSelection(mode, appliedSetIds);
     if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
-    createTree();
+    createTree(force);
     status('Auswahl aktualisiert.');
   } catch (error) {
     status('Lesefehler: ' + error.message, true);
