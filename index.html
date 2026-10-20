@@ -20,22 +20,25 @@
       <button type="button" data-mode="KEINE" aria-pressed="false" disabled>Keine</button>
     </div>
     <button id="apply" type="button" disabled>Anwenden</button>
-    <button id="reload" type="button" title="Liest den Tableau-Zustand erneut ein und verwirft lokale Änderungen.">Neu einlesen</button>
+    <button id="reload" class="icon-button" type="button" aria-label="Neu einlesen" title="Neu einlesen"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 11a9 9 0 1 1 2.6 6.3"/><path d="M3 4v7h7"/></svg></button>
   </div>
   <div class="search-bar">
     <input id="search-query" type="search" autocomplete="off" spellcheck="false"
-      placeholder="Hierarchie durchsuchen …" aria-label="Hierarchie durchsuchen" disabled>
-    <span id="search-count" role="status" aria-live="polite"></span>
-  </div>
-  <div class="tree-actions" role="group" aria-label="Baumansicht">
-    <button id="search-only" type="button" aria-pressed="false" disabled
-      title="Nur passende Knoten und ihre übergeordneten Zweige anzeigen">Nur Treffer</button>
-    <button id="expand-all" type="button" disabled title="Alle Zweige aufklappen">Alle öffnen</button>
-    <button id="collapse-all" type="button" disabled title="Alle Zweige zuklappen">Alle schließen</button>
+      placeholder="Suchen …" aria-label="Hierarchie durchsuchen" disabled>
+    <div class="search-controls" role="group" aria-label="Such- und Baumansicht">
+      <button id="search-only" class="icon-button" type="button" aria-label="Nur Treffer anzeigen"
+        aria-pressed="false" title="Nur Treffer anzeigen" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16l-6.5 7.2v5.5l-3 1.7v-7.2L4 5Z"/></svg></button>
+      <button id="expand-all" class="icon-button" type="button" aria-label="Alle Zweige aufklappen"
+        title="Alle Zweige aufklappen" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7 10 5-5 5 5"/><path d="m7 14 5 5 5-5"/></svg></button>
+      <button id="collapse-all" class="icon-button" type="button" aria-label="Alle Zweige zuklappen"
+        title="Alle Zweige zuklappen" disabled><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m7 5 5 5 5-5"/><path d="m7 19 5-5 5 5"/></svg></button>
+    </div>
   </div>
   <p id="status" role="status">Initialisiere ...</p>
-  <div class="metrics"><span id="count"></span><span id="mode"></span></div>
-  <p id="pending" role="status" hidden>● Nicht angewendet – Änderungen liegen nur in dieser Extension.</p>
+  <div class="metrics">
+    <span id="count"></span><span id="search-count" role="status" aria-live="polite"></span>
+    <span id="mode"></span>
+  </div>
   <div id="rows" class="wb-skeleton wb-initializing"></div>
 </body>
 </html>

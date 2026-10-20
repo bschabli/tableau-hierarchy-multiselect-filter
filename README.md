@@ -19,7 +19,9 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Clearing the query restores the expansion state before searching
 - Search never changes checkboxes, parameters or Tableau Set membership
 - **Nur Treffer** toggles Wunderbaum's hide filter: only matches and their ancestor paths remain visible
+- Compact icon tools for expand/collapse all and search-only mode, with keyboard focus, aria labels and tooltips
 - **Alle öffnen / Alle schließen** expands or collapses the entire tree without changing selected values
+- Compact 28px tree rows and tighter button spacing for narrow Tableau dashboard containers
 - Mode selection uses three buttons (Alle, Auswahl, Keine); changes remain local until **Anwenden**
 
 ## Format Extension – wichtig: `.trex` erneut laden

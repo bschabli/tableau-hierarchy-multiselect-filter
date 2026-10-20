@@ -53,8 +53,13 @@ function summary() {
   $('expand-all').disabled = !configured || busy;
   $('collapse-all').disabled = !configured || busy;
   $('search-only').setAttribute('aria-pressed', String(showOnlyMatches));
-  $('reload').textContent = changed ? 'Änderungen verwerfen' : 'Neu einlesen';
-  $('pending').hidden = !changed;
+  const filterHint = showOnlyMatches ? 'Alle Treffer und übrige Knoten anzeigen'
+    : 'Nur Treffer anzeigen';
+  $('search-only').title = filterHint;
+  $('search-only').setAttribute('aria-label', filterHint);
+  const reloadHint = changed ? 'Änderungen verwerfen' : 'Neu einlesen';
+  $('reload').title = reloadHint;
+  $('reload').setAttribute('aria-label', reloadHint);
   $('apply').disabled = !configured || busy || !changed;
 }
 
@@ -95,7 +100,7 @@ function createTree() {
           }
         }
       },
-      rowHeightPx: 32,
+      rowHeightPx: 28,
       minExpandLevel: 0,
       icon: false,
       iconMap: {
