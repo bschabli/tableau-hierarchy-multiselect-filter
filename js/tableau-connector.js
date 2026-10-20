@@ -117,6 +117,26 @@ export class TableauConnector {
     return {leaves,selectedIds:readLeafSelection(leaves),mode:this.mode};
   }
 
+  /**
+   * Clear a Set through the Tableau Set Action configured with
+   * "Clearing the selection: Remove all values from set".
+   * A one-mark selection first ensures clearing creates a real event.
+   */
+  async clearSetViaSelection(leaves) {
+    if (!leaves.length) {
+      throw new Error('Keine Werte verfügbar, um das Tableau Set zurückzusetzen.');
+    }
+    await this.worksheet.selectTuplesAsync(
+      [leaves[0].tupleId], tableau.SelectOptions.Simple
+    );
+    if (typeof this.worksheet.clearSelectedMarksAsync === 'function') {
+      await this.worksheet.clearSelectedMarksAsync();
+    } else {
+      // Older Viz Extension implementations may lack the explicit method.
+      await this.worksheet.selectTuplesAsync([], tableau.SelectOptions.Simple);
+    }
+  }
+
   async selectLeaves(selectedIds,leaves) {
     const tupleIds=leaves.filter(leaf=>selectedIds.has(leaf.id)).map(leaf=>leaf.tupleId);
     await this.worksheet.selectTuplesAsync(tupleIds,tableau.SelectOptions.Simple);

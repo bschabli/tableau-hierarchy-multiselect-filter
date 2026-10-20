@@ -105,45 +105,56 @@ test('expansion state persists when rebuilding',()=>{
 test('draft selections and filter modes',()=>{
   const leaves=[{id:'A'},{id:'B'},{id:'C'}];
   const saved=new Set(['B']);
-  assert.deepEqual([...effectiveSelection('ALLE',saved,leaves)],[]);
-  assert.deepEqual([...effectiveSelection('KEINE',saved,leaves)],[]);
+  assert.deepEqual([...effectiveSelection('ALLE',saved,leaves)],['B']);
+  assert.deepEqual([...effectiveSelection('KEINE',saved,leaves)],['B']);
   assert.equal(hasPendingChanges('AUSWAHL',new Set(['B']),'AUSWAHL',saved,leaves),false);
   assert.equal(hasPendingChanges('AUSWAHL',new Set(['A']),'AUSWAHL',saved,leaves),true);
   assert.equal(sameIds(new Set(['A','B']),new Set(['B','A'])),true);
 });
 
-test('empty visible selection writes every ID to Tableau Set and leaves boxes empty', () => {
-  const leaves = [{id:'L001'},{id:'L002'},{id:'L003'}];
-  const result = resolveApplyState('KEINE', new Set(), leaves);
-  assert.equal(result.mode, 'ALLE');
-  assert.deepEqual([...result.setIds], ['L001','L002','L003']);
-  assert.deepEqual([...result.checkedIds], []);
-});
 
-test('empty AUSWAHL likewise restores full Set without checking boxes', () => {
-  const leaves = [{id:'A'},{id:'B'}];
-  const result = resolveApplyState('AUSWAHL', new Set(), leaves);
-  assert.equal(result.mode, 'ALLE');
-  assert.deepEqual([...result.setIds], ['A','B']);
-  assert.deepEqual([...result.checkedIds], []);
-});
-
-test('ALLE loads as zero checked even when every Set member is IN', () => {
-  const leaves=[{id:'A'},{id:'B'}];
-  const fullSet=new Set(leaves.map(leaf=>leaf.id));
-  assert.deepEqual([...effectiveSelection('ALLE',fullSet)], []);
-  assert.equal(hasPendingChanges('ALLE',new Set(),'ALLE',fullSet,leaves),false);
-});
-
-test('an incomplete Set under ALLE needs one explicit Apply to fill it', () => {
+test('Alle writes all Set members and checks all boxes', () => {
   const leaves=[{id:'A'},{id:'B'},{id:'C'}];
-  assert.equal(hasPendingChanges('ALLE',new Set(),'ALLE',new Set(['A']),leaves),true);
+  const result=resolveApplyState('ALLE',new Set(),leaves);
+  assert.equal(result.mode,'ALLE');
+  assert.deepEqual([...result.setIds],['A','B','C']);
+  assert.deepEqual([...result.checkedIds],['A','B','C']);
 });
 
-test('nonempty checkbox selection writes only checked values', () => {
+test('Keine writes an empty Set and unchecks all boxes', () => {
+  const leaves=[{id:'A'},{id:'B'}];
+  const result=resolveApplyState('KEINE',new Set(['A']),leaves);
+  assert.equal(result.mode,'KEINE');
+  assert.deepEqual([...result.setIds],[]);
+  assert.deepEqual([...result.checkedIds],[]);
+});
+
+test('AUSWAHL writes exactly the checked values', () => {
   const leaves=[{id:'A'},{id:'B'},{id:'C'}];
   const result=resolveApplyState('AUSWAHL',new Set(['A','C']),leaves);
   assert.equal(result.mode,'AUSWAHL');
   assert.deepEqual([...result.setIds],['A','C']);
   assert.deepEqual([...result.checkedIds],['A','C']);
+});
+
+test('empty AUSWAHL does not silently become ALLE', () => {
+  const result=resolveApplyState('AUSWAHL',new Set(),[{id:'A'}]);
+  assert.equal(result.mode,'AUSWAHL');
+  assert.equal(result.setIds.size,0);
+  assert.equal(result.checkedIds.size,0);
+});
+
+test('UI displays actual Tableau Set membership even in Alle or Keine modes', () => {
+  const saved=new Set(['B']);
+  assert.deepEqual([...effectiveSelection('ALLE',saved)],['B']);
+  assert.deepEqual([...effectiveSelection('KEINE',saved)],['B']);
+});
+
+test('changes are pending until the full intended set is in Tableau', () => {
+  const full=new Set(['A','B']);
+  const partial=new Set(['A']);
+  assert.equal(hasPendingChanges('ALLE',full,'ALLE',partial),true);
+  assert.equal(hasPendingChanges('KEINE',new Set(),'ALLE',full),true);
+  assert.equal(hasPendingChanges('KEINE',new Set(),'KEINE',new Set()),false);
+  assert.equal(hasPendingChanges('AUSWAHL',partial,'AUSWAHL',partial),false);
 });

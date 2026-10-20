@@ -1,34 +1,33 @@
-/** Pure draft state helpers. Checkbox state is deliberately separate from Set membership. */
+/** Pure draft state helpers, independent of Tableau and the tree widget. */
 export function sameIds(a, b) {
   return a.size === b.size && [...a].every(id => b.has(id));
 }
 
-/**
- * ALLE: all values can pass the filter, but no checkbox needs to be checked.
- * AUSWAHL: checked nodes correspond to the current Tableau Set.
- * KEINE: temporary empty checkbox state; Apply normalizes to ALLE.
- */
-export function effectiveSelection(mode, setIds) {
-  if (mode === 'ALLE' || mode === 'KEINE') return new Set();
+/** The visible checkbox state reflects the real Tableau Set membership. */
+export function effectiveSelection(_mode, setIds) {
   return new Set(setIds);
 }
 
-/** What Tableau should contain after an explicit Apply operation. */
+/**
+ * ALLE  = all values IN the Set, all checked.
+ * KEINE = no values IN the Set, none checked.
+ * AUSWAHL = exactly the individually checked values IN the Set.
+ * A zero-item custom selection is not silently converted to ALLE.
+ */
 export function resolveApplyState(mode, checkedIds, leaves) {
-  const allIds = new Set(leaves.map(leaf => leaf.id));
-  if (mode !== 'AUSWAHL' || checkedIds.size === 0) {
-    return {mode: 'ALLE', setIds: allIds, checkedIds: new Set()};
+  let setIds;
+  if (mode === 'ALLE') {
+    setIds = new Set(leaves.map(leaf => leaf.id));
+  } else if (mode === 'KEINE') {
+    setIds = new Set();
+  } else if (mode === 'AUSWAHL') {
+    setIds = new Set(checkedIds);
+  } else {
+    throw new Error('Unbekannter Filtermodus: ' + mode);
   }
-  return {
-    mode: 'AUSWAHL',
-    setIds: new Set(checkedIds),
-    checkedIds: new Set(checkedIds)
-  };
+  return {mode, setIds, checkedIds: new Set(setIds)};
 }
 
-export function hasPendingChanges(draftMode, draftIds, appliedMode, appliedSetIds, leaves) {
-  const desired = resolveApplyState(draftMode, draftIds, leaves);
-  return draftMode !== appliedMode
-    || !sameIds(draftIds, effectiveSelection(appliedMode, appliedSetIds))
-    || !sameIds(desired.setIds, appliedSetIds);
+export function hasPendingChanges(draftMode, draftIds, appliedMode, appliedSetIds) {
+  return draftMode !== appliedMode || !sameIds(draftIds, appliedSetIds);
 }

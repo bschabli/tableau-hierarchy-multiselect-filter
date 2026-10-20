@@ -7,7 +7,9 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Build a tree from the flat level encodings (including ragged hierarchies)
 - Hierarchical checkboxes with parent/child propagation and indeterminate state
 - Draft selection: checkbox edits and Alle/Keine are local until **Anwenden**
-- **Keine** clears the checkboxes; **Anwenden** writes **all values into the Tableau Set** and switches the parameter to **ALLE**, while **the checkboxes stay empty**.
+- **Alle** selects every checkbox and assigns all currently available values to the Tableau Set.
+- **Keine** clears every checkbox and, on **Anwenden**, empties the Tableau Set (parameter `KEINE`).
+- **Auswahl** uses exactly the checked values, including an empty manual selection.
 - **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits
 - Expand/Collapse state and scroll position are preserved on Set refresh; rows use Wunderbaum's matching 32px virtual row height.
 - Tableau Set Actions via `selectTuplesAsync`
@@ -36,7 +38,7 @@ ersten Laden einmalig angeboten. Danach wird er über **Format Extension** geöf
 
 **Modusauswahl:** Im Filter sind drei Buttons **Alle / Auswahl / Keine** sichtbar.
 Die Änderung bleibt lokal bis **Anwenden**. Auf ausdrücklichen Wunsch gilt weiterhin:
-**Keine + Anwenden** schreibt **alle Werte ins Tableau Set** und setzt den Modus auf **Alle** zurück. Die Checkboxen bleiben dabei leer.
+**Alle + Anwenden** schreibt alle Werte ins Tableau Set, **Keine + Anwenden** leert das Tableau Set. Der Modus bleibt jeweils auf **Alle** beziehungsweise **Keine**. Die Checkboxen zeigen den Set-Inhalt.
 
 **Hierarchie:** Die unterste ausgefüllte Ebene ist der letzte sichtbare Knoten.
 Die Leaf ID ist ausschließlich der eindeutige technische Schlüssel; sie wird
@@ -56,13 +58,15 @@ GitHub Pages publishes the root of `main` directly. Download `hierarchy_filter.t
 - `Hierarchiestufen`: ordered level columns
 - `Set-Mitgliedschaft`: the Boolean Set field `s.filter_auswahl`
 - Configurable parameter (e.g. `p.kostenstelle_filter_modus`): `ALLE`, `AUSWAHL`, `KEINE`
-- Set Action on `Select`: assign marks to `s.filter_auswahl`, keep values on clearing
+- Set Action on `Select`: **Assign values to set** for `s.filter_auswahl`.
+- **Required change:** Under **Clearing the selection**, select **Remove all values from set** (German: **Alle Werte aus Set entfernen**). The previous **Keep set values** configuration cannot empty the Set.
+- Keep the extension's own source worksheet unfiltered, and ensure the Set Action targets the correct datasource/Set.
 
 Do not filter the extension's own data to the selected set.
 
 ## Important caveat
 
-The initial Wunderbaum implementation is a prototype. Performance at 15,000 leaves, Dashboard/Cloud behavior, and complex cases with large multiselections are not yet verified. The app selects Tableau tuples for each required Set update. An empty visible selection is represented by `ALLE` together with all values inside the Tableau Set; visually the checkboxes remain unchecked. For larger hierarchies, selecting all tuples may have a performance cost.
+The initial Wunderbaum implementation is a prototype. Performance at 15,000 leaves, Dashboard/Cloud behavior, and complex cases with large multiselections are not yet verified. The app selects Tableau tuples for each required Set update. An empty visible selection means an empty Set; all selected checkboxes mean all available values are in the Set. For larger hierarchies, selecting all tuples may have a performance cost.
 
 ## Files
 

@@ -35,7 +35,7 @@ function updateOptionalTitle() {
 }
 
 function pending() {
-  return hasPendingChanges(mode, selected, appliedMode, appliedSetIds, leaves);
+  return hasPendingChanges(mode, selected, appliedMode, appliedSetIds);
 }
 
 function summary() {
@@ -235,9 +235,6 @@ async function reload(force = false) {
     appliedMode = snapshot.mode;
     mode = snapshot.mode;
     selected = effectiveSelection(mode, appliedSetIds);
-    // An unfiltered workbook can have all members in the Tableau Set
-    // without any checkbox being checked. Do not copy those IDs into
-    // the user's last explicit selection.
     if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
     createTree();
     status('Auswahl aktualisiert.');
@@ -261,17 +258,18 @@ function stageMode(nextMode) {
       createTree();
     } else {
       const all = nextMode === 'ALLE';
-      // Neither ALLE nor KEINE should display checked boxes.
-      tree.selectAll(false);
-      selected = new Set();
+      tree.selectAll(all);
+      selected = all ? new Set(leaves.map(leaf => leaf.id)) : new Set();
     }
   } finally {
     ignoreEvents = false;
   }
   summary();
   status(nextMode === 'KEINE'
-    ? 'Keine Auswahl vorgemerkt. Beim Anwenden werden alle Werte berücksichtigt.'
-    : 'Modus geändert – noch nicht angewendet.');
+    ? 'Keine ausgewählt – noch nicht angewendet.'
+    : nextMode === 'ALLE'
+      ? 'Alle ausgewählt – noch nicht angewendet.'
+      : 'Modus geändert – noch nicht angewendet.');
 }
 
 async function apply() {
@@ -279,38 +277,62 @@ async function apply() {
   lock(true);
   try {
     const intended = resolveApplyState(mode, selected, leaves);
-    let writtenMarks = null;
+    const setChanged = !sameIds(intended.setIds, appliedSetIds);
 
-    // Important: an empty displayed selection means all items must be
-    // IN the Tableau Set, not that all checkboxes become checked.
-    if (!sameIds(intended.setIds, appliedSetIds)) {
-      writtenMarks = await connector.selectLeaves(intended.setIds, leaves);
+    if (setChanged) {
+      if (intended.setIds.size === 0) {
+        // A Tableau Set Action with "Keep set values" cannot clear a Set.
+        // Trigger an actual selection-cleared event, which requires
+        // "Remove all values from set" in the Tableau Set Action.
+        await connector.clearSetViaSelection(leaves);
+
+        // Confirm the Set became empty before reporting success or
+        // updating the mode parameter. Tableau actions can be asynchronous.
+        let cleared = false;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 250));
+          const current = await connector.readState();
+          if (current.selectedIds.size === 0) {
+            cleared = true;
+            break;
+          }
+        }
+        if (!cleared) {
+          throw new Error(
+            'Das Set wurde nicht geleert. Stelle bei der Tableau Set Action ' +
+            'unter „Auswahl aufheben“ die Option „Alle Werte aus Set entfernen“ ein.'
+          );
+        }
+      } else {
+        await connector.selectLeaves(intended.setIds, leaves);
+      }
       appliedSetIds = new Set(intended.setIds);
     }
+
     if (intended.mode !== appliedMode) {
       await connector.changeMode(intended.mode);
     }
     appliedMode = intended.mode;
     mode = intended.mode;
     selected = new Set(intended.checkedIds);
-
     if (mode === 'AUSWAHL') lastExplicitSelection = new Set(selected);
-    // Keep the checkbox state accurate even when the full Tableau Set is selected.
+
+    // Programmatic tree selections are ignored by the select callback
+    // and must mirror the draft, without changing the Tableau Set again.
     ignoreEvents = true;
     try {
-      if (mode === 'ALLE') {
-        tree.selectAll(false);
-      }
+      tree.selectAll(mode === 'ALLE');
+      if (mode === 'AUSWAHL') createTree();
     } finally {
       ignoreEvents = false;
     }
     summary();
     if (mode === 'ALLE') {
-      status('Filter zurückgesetzt – alle Werte werden berücksichtigt.');
-    } else if (writtenMarks !== null) {
-      status(selected.size + ' Werte ausgewählt und angewendet.');
+      status('Alle Werte ausgewählt und angewendet.');
+    } else if (mode === 'KEINE') {
+      status('Keine Werte ausgewählt und angewendet.');
     } else {
-      status('Auswahl angewendet.');
+      status(selected.size + ' Werte ausgewählt und angewendet.');
     }
   } catch (error) {
     status('Anwenden fehlgeschlagen: ' + error.message, true);
