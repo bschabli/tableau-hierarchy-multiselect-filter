@@ -6,10 +6,10 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 
 - Build a tree from the flat level encodings (including ragged hierarchies)
 - Hierarchical checkboxes with parent/child propagation and indeterminate state
-- Draft selection: checkbox edits and Alle/Keine are local until **Anwenden**
+- Checkbox edits and Alle/Keine are staged locally until **Anwenden**.
 - **Alle** selects every checkbox and assigns all currently available values to the Tableau Set.
-- **Keine** clears every checkbox and, on **Anwenden**, empties the Tableau Set (parameter `KEINE`).
-- **Auswahl** uses exactly the checked values, including an empty manual selection.
+- **Keine** clears all checkboxes and on **Anwenden** empties the Tableau Set.
+- Manual checkbox edits select exactly the checked values.
 - **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits
 - Initial opening and deliberate **Neu einlesen** start with the entire tree collapsed.
 - Automatic Set refreshes and checkbox/mode changes retain the user's open branches and scroll position.
@@ -26,7 +26,7 @@ Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](
 - Compact 26px tree rows and tighter button spacing for narrow Tableau dashboard containers
 - Missing FIRST hierarchy levels become an "Ohne Zuordnung" root; deeper NULL values are removed to keep ragged paths compact
 - Optional second per-instance Tableau **text parameter** receives a compact, hierarchy-aware filter summary on **Anwenden** (and when configuring that parameter)
-- Mode selection uses three buttons (Alle, Auswahl, Keine); changes remain local until **Anwenden**
+- Only **Alle**, **Keine**, **Anwenden** are needed; no Tableau mode parameter.
 
 ## Format Extension – wichtig: `.trex` erneut laden
 
@@ -42,9 +42,7 @@ Der Manifeststand ist jetzt **0.2.0**.
 Solange kein Modusparameter gespeichert ist, wird der Konfigurationsdialog beim
 ersten Laden einmalig angeboten. Danach wird er über **Format Extension** geöffnet.
 
-**Modusauswahl:** Im Filter sind drei Buttons **Alle / Auswahl / Keine** sichtbar.
-Die Änderung bleibt lokal bis **Anwenden**. Auf ausdrücklichen Wunsch gilt weiterhin:
-**Alle + Anwenden** schreibt alle Werte ins Tableau Set, **Keine + Anwenden** leert das Tableau Set. Der Modus bleibt jeweils auf **Alle** beziehungsweise **Keine**. Die Checkboxen zeigen den Set-Inhalt.
+**Auswahlaktionen:** **Alle** selects all, **Keine** selects none. Manual checkbox edits produce individual selections. Only **Anwenden** updates the Set. The former Tableau mode parameter is no longer used.
 
 **Hierarchie:** Die unterste ausgefüllte Ebene ist der letzte sichtbare Knoten.
 Die Leaf ID ist ausschließlich der eindeutige technische Schlüssel; sie wird
@@ -92,18 +90,21 @@ Objektkennung oder eine zusätzliche eindeutige Komponente in der ID.
 
 ## Pro Filterinstanz konfigurieren
 
-Über **Format Extension** in der Tableau-Marks-Karte einen Tableau-Zeichenfolge-Parameter mit den Werten `ALLE`, `AUSWAHL`, `KEINE` auswählen. Der Dialog verwendet echte HTML-Dropdowns statt `datalist`, sodass Vorschläge auch im eingebetteten Tableau-Browser sichtbar sind. Zusätzlich ist die manuelle Eingabe weiter möglich. Die API-Abfrage erfolgt nur einmal und Fehler beim Laden der Liste erscheinen als Hinweis im Dialog. Die Filterbezeichnung ist optional und kann per Checkbox eingeblendet werden. Parameter können aus Vorschlägen gewählt oder namentlich eingegeben werden. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Für jede Dimension sollte ein eigener Parameter verwendet werden; das Tableau Set wird weiterhin über die Marks-Karte verbunden.
+Über **Format Extension** ist nur der optionale Textparameter für die Zusammenfassung konfigurierbar. Der Dialog verwendet echte HTML-Dropdowns statt `datalist`, sodass Vorschläge auch im eingebetteten Tableau-Browser sichtbar sind. Zusätzlich ist die manuelle Eingabe weiter möglich. Die API-Abfrage erfolgt nur einmal und Fehler beim Laden der Liste erscheinen als Hinweis im Dialog. Die Filterbezeichnung ist optional und kann per Checkbox eingeblendet werden. Parameter können aus Vorschlägen gewählt oder namentlich eingegeben werden. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Jede Instanz benötigt ihre eigene Set Action für das passende Tableau Set.
+
+## Umstellung bisheriger Arbeitsmappen
+
+**Wichtig:** Ersetze das bisherige berechnete Filterfeld `cf.filter_aktiv`, das den alten Modusparameter abfragt, durch die Set-Mitgliedschaft direkt: `[s.filter_auswahl]`. Andernfalls kann ein alter Parameterwert (z. B. `KEINE`) weiter alle Datensätze ausblenden. Der alte `p.filter_modus` kann nach Entfernen aller Referenzen im Workbook gelöscht werden. Behalte die bestehende Set Action einschließlich **Remove all values from set** beim Aufheben einer Markierung. Die `.trex` bleibt unverändert.
 
 ## Install
 
-GitHub Pages publishes the root of `main` directly. Download `hierarchy_filter.trex` and add it as a Viz Extension. Keep the existing Set Action. The mode parameter can now be chosen per instance.
+GitHub Pages publishes the root of `main` directly. Download `hierarchy_filter.trex` and add it as a Viz Extension. Keep the existing Set Action. A mode parameter is no longer needed.
 
 ### Tableau configuration
 
 - `Leaf ID`: stable unique leaf identifier
 - `Hierarchiestufen`: ordered level columns
 - `Set-Mitgliedschaft`: the Boolean Set field `s.filter_auswahl`
-- Configurable parameter (e.g. `p.kostenstelle_filter_modus`): `ALLE`, `AUSWAHL`, `KEINE`
 - Set Action on `Select`: **Assign values to set** for `s.filter_auswahl`.
 - **Required change:** Under **Clearing the selection**, select **Remove all values from set** (German: **Alle Werte aus Set entfernen**). The previous **Keep set values** configuration cannot empty the Set.
 - Keep the extension's own source worksheet unfiltered, and ensure the Set Action targets the correct datasource/Set.

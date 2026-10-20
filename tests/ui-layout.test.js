@@ -6,11 +6,11 @@ const html=readFileSync(new URL('../index.html', import.meta.url),'utf8');
 const js=readFileSync(new URL('../js/app.js', import.meta.url),'utf8');
 const css=readFileSync(new URL('../css/filter.css', import.meta.url),'utf8');
 
-test('three mode buttons and a textual Apply button remain usable',()=>{
-  for(const mode of ['ALLE','AUSWAHL','KEINE']) {
-    assert.match(html,new RegExp('data-mode="'+mode+'"'));
-  }
-  assert.match(html, /id="apply"[^>]*>Anwenden<\/button>/);
+test('Alle and Keine are actions, no mode selector is required',()=>{
+  assert.match(html,/id="all"/);
+  assert.match(html,/id="none"/);
+  assert.doesNotMatch(html,/data-mode=|id="mode"/);
+  assert.match(html,/id="apply"[^>]*>Anwenden<\/button>/);
 });
 
 test('search-only, expand, collapse and reload use labeled inline icons',()=>{

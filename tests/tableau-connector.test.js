@@ -31,7 +31,7 @@ test('cannot clear Set with no source marks', async () => {
   await assert.rejects(connector.clearSetViaSelection([]),/Keine Werte verfügbar/);
 });
 
-test('writes the configured free-text summary independently of mode parameter', async () => {
+test('writes the optional free-text summary without a mode parameter', async () => {
   const calls=[];
   const connector=new TableauConnector();
   connector.worksheet={
@@ -41,7 +41,6 @@ test('writes the configured free-text summary independently of mode parameter', 
         async changeValueAsync(value){calls.push([name,value]);}};
     }
   };
-  connector.parameterName='p.kostenstellen_filter_modus';
   await connector.chooseSummaryParameter('p.kostenstellen_zusammenfassung');
   assert.equal(await connector.writeSummary('Produktion, Einkauf'),true);
   assert.deepEqual(calls,[['p.kostenstellen_zusammenfassung','Produktion, Einkauf']]);
@@ -49,14 +48,7 @@ test('writes the configured free-text summary independently of mode parameter', 
   assert.equal(await connector.writeSummary('Keine'),false);
 });
 
-test('rejects summary parameter with same name as mode', async () => {
-  const connector=new TableauConnector();
-  connector.parameterName='p.filter_modus';
-  await assert.rejects(connector.chooseSummaryParameter('p.filter_modus'),
-    /eigenen Tableau-Parameter/);
-});
-
-test('parameter suggestions are fetched once and categorized for both selectors',async()=>{
+test('parameter suggestions are fetched once for the optional summary selector',async()=>{
   const connector=new TableauConnector();
   let requests=0;
   connector.worksheet={
@@ -75,7 +67,6 @@ test('parameter suggestions are fetched once and categorized for both selectors'
   const result=await connector.listParameterCandidates();
   assert.equal(requests,1);
   assert.equal(result.returnedCount,3);
-  assert.equal(result.parameters.find(p=>p.name==='p.modus').valid,true);
   assert.equal(result.summaryParameters.find(p=>p.name==='p.zusammenfassung').valid,true);
   assert.equal(result.summaryParameters.find(p=>p.name==='p.anzahl').valid,false);
 });
@@ -83,13 +74,12 @@ test('parameter suggestions are fetched once and categorized for both selectors'
 test('already configured parameter remains a suggestion if bulk list is incomplete',async()=>{
   const connector=new TableauConnector();
   connector.worksheet={async getParametersAsync(){return [];}};
-  connector.parameter={name:'p.vorhanden',dataType:'string',currentValue:{value:'ALLE'},
-    allowableValues:{type:'list',allowableValues:[
-      {value:'ALLE'},{value:'AUSWAHL'},{value:'KEINE'}]}};
+  connector.summaryParameter={name:'p.vorhanden',dataType:'string',currentValue:{value:''},
+    allowableValues:{type:'all'}};
   const result=await connector.listParameterCandidates();
   assert.equal(result.returnedCount,0);
-  assert.equal(result.parameters.length,1);
-  assert.equal(result.parameters[0].name,'p.vorhanden');
+  assert.equal(result.summaryParameters.length,1);
+  assert.equal(result.summaryParameters[0].name,'p.vorhanden');
 });
 
 test('parameter API errors are reported and not replaced by empty suggestions',async()=>{

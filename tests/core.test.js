@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {membership, rowToLeaf, readLeafSelection, validateLeaves} from '../js/core.js';
 import {buildHierarchy, selectedLeafIds, getExpandedKeys} from '../js/hierarchy.js';
-import {sameIds, effectiveSelection, resolveApplyState, hasPendingChanges} from '../js/selection-state.js';
+import {sameIds, hasPendingChanges} from '../js/selection-state.js';
 
 test('reads Tableau set membership correctly', () => {
   assert.equal(membership('IN'), true);
@@ -102,61 +102,13 @@ test('expansion state persists when rebuilding',()=>{
   assert.equal(next.leafByKey.get('l:c').selected,true);
 });
 
-test('draft selections and filter modes',()=>{
-  const leaves=[{id:'A'},{id:'B'},{id:'C'}];
-  const saved=new Set(['B']);
-  assert.deepEqual([...effectiveSelection('ALLE',saved,leaves)],['B']);
-  assert.deepEqual([...effectiveSelection('KEINE',saved,leaves)],['B']);
-  assert.equal(hasPendingChanges('AUSWAHL',new Set(['B']),'AUSWAHL',saved,leaves),false);
-  assert.equal(hasPendingChanges('AUSWAHL',new Set(['A']),'AUSWAHL',saved,leaves),true);
-  assert.equal(sameIds(new Set(['A','B']),new Set(['B','A'])),true);
-});
-
-
-test('Alle writes all Set members and checks all boxes', () => {
-  const leaves=[{id:'A'},{id:'B'},{id:'C'}];
-  const result=resolveApplyState('ALLE',new Set(),leaves);
-  assert.equal(result.mode,'ALLE');
-  assert.deepEqual([...result.setIds],['A','B','C']);
-  assert.deepEqual([...result.checkedIds],['A','B','C']);
-});
-
-test('Keine writes an empty Set and unchecks all boxes', () => {
-  const leaves=[{id:'A'},{id:'B'}];
-  const result=resolveApplyState('KEINE',new Set(['A']),leaves);
-  assert.equal(result.mode,'KEINE');
-  assert.deepEqual([...result.setIds],[]);
-  assert.deepEqual([...result.checkedIds],[]);
-});
-
-test('AUSWAHL writes exactly the checked values', () => {
-  const leaves=[{id:'A'},{id:'B'},{id:'C'}];
-  const result=resolveApplyState('AUSWAHL',new Set(['A','C']),leaves);
-  assert.equal(result.mode,'AUSWAHL');
-  assert.deepEqual([...result.setIds],['A','C']);
-  assert.deepEqual([...result.checkedIds],['A','C']);
-});
-
-test('empty AUSWAHL does not silently become ALLE', () => {
-  const result=resolveApplyState('AUSWAHL',new Set(),[{id:'A'}]);
-  assert.equal(result.mode,'AUSWAHL');
-  assert.equal(result.setIds.size,0);
-  assert.equal(result.checkedIds.size,0);
-});
-
-test('UI displays actual Tableau Set membership even in Alle or Keine modes', () => {
-  const saved=new Set(['B']);
-  assert.deepEqual([...effectiveSelection('ALLE',saved)],['B']);
-  assert.deepEqual([...effectiveSelection('KEINE',saved)],['B']);
-});
-
-test('changes are pending until the full intended set is in Tableau', () => {
-  const full=new Set(['A','B']);
-  const partial=new Set(['A']);
-  assert.equal(hasPendingChanges('ALLE',full,'ALLE',partial),true);
-  assert.equal(hasPendingChanges('KEINE',new Set(),'ALLE',full),true);
-  assert.equal(hasPendingChanges('KEINE',new Set(),'KEINE',new Set()),false);
-  assert.equal(hasPendingChanges('AUSWAHL',partial,'AUSWAHL',partial),false);
+test('draft remains separate from Tableau Set',()=>{
+ const saved=new Set(['B']);
+ assert.equal(hasPendingChanges(new Set(['B']),saved),false);
+ assert.equal(hasPendingChanges(new Set(['A']),saved),true);
+ assert.equal(hasPendingChanges(new Set(),saved),true);
+ assert.equal(hasPendingChanges(new Set(),new Set()),false);
+ assert.equal(sameIds(new Set(['A','B']),new Set(['B','A'])),true);
 });
 
 test('Tableau %null% is removed from ragged paths', () => {
