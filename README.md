@@ -1,122 +1,38 @@
 # Tableau Hierarchy Multi-Select Filter
 
-Open-source Tableau Viz Extension using vanilla JavaScript, [Wunderbaum 0.14.1](https://github.com/mar10/wunderbaum/tree/v0.14.1), and a local Tableau Extensions API.
+Eine schlanke [Tableau Viz Extension](https://help.tableau.com/current/pro/desktop/de-de/viz_extensions.htm) für hierarchische Mehrfachauswahl über **Tableau Sets**. Ohne Build-Schritt, mit JavaScript und [Wunderbaum](https://github.com/mar10/wunderbaum).
 
-## Functionality
+## Einrichtung
 
-- Build a tree from the flat level encodings (including ragged hierarchies)
-- Hierarchical checkboxes with parent/child propagation and indeterminate state
-- Checkbox edits and Alle/Keine are staged locally until **Anwenden**.
-- **Alle** selects every checkbox and assigns all currently available values to the Tableau Set.
-- **Keine** clears all checkboxes and on **Anwenden** empties the Tableau Set.
-- Manual checkbox edits select exactly the checked values.
-- **Änderungen verwerfen** rereads the Tableau state and drops uncommitted edits
-- Initial opening and deliberate **Neu einlesen** start with the entire tree collapsed.
-- Automatic Set refreshes and checkbox/mode changes retain the user's open branches and scroll position.
-- Borderless, separator-free simple tree with 26px virtual rows, subtle hover and keyboard focus highlights.
-- Tableau Set Actions via `selectTuplesAsync`
-- Read Set membership back from Tableau to restore selection
-- Compact hierarchy search (case-insensitive partial title matches), highlights matching text
-- Automatically expands all branches containing matches, including matching parent nodes
-- Clearing the query restores the expansion state before searching
-- Search never changes checkboxes, parameters or Tableau Set membership
-- **Nur Treffer** toggles Wunderbaum's hide filter: only matches and their ancestor paths remain visible
-- Compact icon tools for expand/collapse all and search-only mode, with keyboard focus, aria labels and tooltips
-- **Alle öffnen / Alle schließen** expands or collapses the entire tree without changing selected values
-- Compact 26px tree rows and tighter button spacing for narrow Tableau dashboard containers
-- Missing FIRST hierarchy levels become an "Ohne Zuordnung" root; deeper NULL values are removed to keep ragged paths compact
-- Optional second per-instance Tableau **text parameter** receives a compact, hierarchy-aware filter summary on **Anwenden** (and when configuring that parameter)
-- Only **Alle**, **Keine**, **Anwenden** are needed; no Tableau mode parameter.
+1. [`hierarchy_filter.trex`](hierarchy_filter.trex) herunterladen und als **Viz Extension** in Tableau hinzufügen.
+2. Auf der Marks-Karte zuordnen:
+   - **Leaf ID:** eindeutiger technischer Schlüssel je auswählbarem Objekt.
+   - **Hierarchiestufen:** Ebenen in der gewünschten Reihenfolge (oben nach unten).
+   - **Set-Mitgliedschaft:** das zu steuernde Tableau Set (z. B. `s.filter_auswahl`).
+3. Im Dashboard eine **Set Action** mit der Viz Extension als Quelle erstellen:
+   - **Ausführen bei:** Auswahl (*Select*)
+   - **Ziel:** das zugehörige Set; ausgewählte Werte dem Set zuweisen
+   - **Auswahl aufheben:** **Alle Werte aus Set entfernen** (*Remove all values from set*)
+4. In den Ziel-Arbeitsblättern nach der Set-Mitgliedschaft filtern, z. B. `[s.filter_auswahl]`. **Das Quellarbeitsblatt der Extension darf nicht nach diesem Set gefiltert werden.**
 
-## Format Extension – wichtig: `.trex` erneut laden
+## Bedienung
 
-Die Konfiguration erscheint als **Format Extension** auf der **Marks-Karte des
-Viz-Extension-Arbeitsblatts** (nicht im Dashboard-Objekt-Menü).
-Tableau übernimmt Manifeständerungen nicht durch einen einfachen Webview-Reload.
-Gehe auf **Worksheet → Manage Viz Extensions**, entferne die zuvor importierte
-Version und füge die aktuelle `hierarchy_filter.trex` über die Marks-Karte
-(**Viz Extensions → Add Extension → Access Local Viz Extensions**) erneut hinzu.
-Ordne anschließend die Marks-Shelves wieder zu und prüfe die Set Action.
-Der Manifeststand ist jetzt **0.2.0**.
+**Alle**, **Keine** und die Checkboxen verändern zunächst nur die lokale Auswahl. Erst **Anwenden** schreibt sie in das Tableau Set. Das Aktualisieren-Symbol liest den Set-Zustand erneut ein und verwirft nicht übernommene Änderungen.
 
-Solange kein Modusparameter gespeichert ist, wird der Konfigurationsdialog beim
-ersten Laden einmalig angeboten. Danach wird er über **Format Extension** geöffnet.
+Die Suche markiert Treffer und öffnet passende Zweige. Mit dem Trichter-Symbol lassen sich nur Treffer anzeigen. Weitere Symbole öffnen oder schließen den gesamten Baum.
 
-**Auswahlaktionen:** **Alle** selects all, **Keine** selects none. Manual checkbox edits produce individual selections. Only **Anwenden** updates the Set. The former Tableau mode parameter is no longer used.
+Unter **Format Extension** auf der Marks-Karte lassen sich ein optionaler Titel und ein **optionaler Zusammenfassungsparameter** einstellen. Dafür einen Tableau-Zeichenfolge-Parameter mit zulässigen Werten **Alle** (beliebiger Text, keine Werteliste) verwenden. Die Zusammenfassung wird beim Anwenden aktualisiert und verdichtet vollständig ausgewählte Zweige.
 
-**Hierarchie:** Die unterste ausgefüllte Ebene ist der letzte sichtbare Knoten.
-Die Leaf ID ist ausschließlich der eindeutige technische Schlüssel; sie wird
-nicht als zusätzliche Hierarchieebene angezeigt.
+## Hinweise
 
-## Zusammenfassungsparameter
+- Die letzte befüllte Hierarchiestufe ist der sichtbare Endknoten; die **Leaf ID** wird nicht angezeigt.
+- Fehlende untergeordnete Hierarchiestufen werden übersprungen. Ein `NULL` auf der obersten Ebene erscheint unter **Ohne Zuordnung**; vollständig leere Pfade unter **Ohne Bezeichnung**.
+- Jede Leaf ID muss eindeutig sein. Mehrere Objekte mit gleichen Hierarchienamen benötigen eigene IDs.
+- Tableau liest Änderungen an der `.trex` nicht durch bloßes Neuladen ein; bei Manifeständerungen die Extension erneut hinzufügen.
+- Bei großen Datenmengen kann das Übertragen aller ausgewählten Marks Zeit beanspruchen.
 
-Optional kann über **Format Extension** ein zweiter Tableau-Parameter für die
-Zusammenfassung gewählt werden, z. B. `p.kostenstellen_zusammenfassung`.
-In Tableau vorher einen **Zeichenfolge-Parameter mit zulässigen Werten „Alle“**
-(`All`, keine feste Werteliste) erstellen und im Workbook verwenden. Tableau
-stellt der Extension nur verfügbare Workbook-Parameter zur Verfügung.
+## Technik und Lizenzen
 
-Beim Klick auf **Anwenden** schreibt die Extension:
-- `Alle` bei vollständiger Auswahl
-- `Keine` bei leerer Auswahl
-- eine verkürzte Hierarchieliste bei Teilselektion, beispielsweise
-  `Produktion, Vertrieb › Region Ost`
+GitHub Pages veröffentlicht `main` direkt über [die Extension](https://bschabli.github.io/tableau-hierarchy-multiselect-filter/index.html). Die Datei `.nojekyll` deaktiviert Jekyll für das statische Deployment. Es sind keine Installations- oder Build-Befehle erforderlich.
 
-Sind alle Kinder einer Kategorie gewählt, wird nur die Kategorie genannt.
-Die Zusammenfassung ist auf 240 Zeichen begrenzt und endet bei Bedarf mit
-`(+N weitere)`. Der Parameter kann im Dashboard als dynamischer Text verwendet
-werden. Der gespeicherte Parameter ist vom Modusparameter unabhängig.
-
-## Fehlende Hierarchieebenen
-
-**Übergangslösung:** Ein echtes NULL (oder `%null%`) auf der **obersten
-Hierarchiestufe** wird als eigene Gruppe **„Ohne Zuordnung“** dargestellt.
-Andere NULL-Stufen werden wie bisher übersprungen. Wenn bei einem Objekt
-sämtliche Ebenen fehlen, erscheint es als **„Ohne Bezeichnung“** unter
-„Ohne Zuordnung“. Auch mehrere solche Objekte behalten jeweils ihre
-technische Leaf-ID und können getrennt ausgewählt werden.
-
-Die technische Leaf-ID bestimmt **nicht** die sichtbare Tiefe. Ist `Null` dagegen ein **echter
-Textwert**, weil ein Tableau-Berechnungsfeld beispielsweise
-`IFNULL([Ebene], "Null")` verwendet, kann die Extension ihn nicht sicher von
-einem realen Kategorienamen unterscheiden. In diesem Fall die betreffende
-Hierarchiestufe in Tableau als **echtes NULL** belassen, und für die technische
-Leaf-ID lieber stabile eindeutige Objektcodes oder eindeutig getrennte,
-nichtleere Pfadsegmente verwenden. **Die Leaf-ID muss weiterhin für jedes
-Objekt eindeutig sein.** Werden IDs nur aus Ebenennamen verkettet, können
-mehrere unzugeordnete Objekte dieselbe ID erhalten. Das behebt die
-Anzeige der Extension nicht; für diese Fälle braucht es eine stabile
-Objektkennung oder eine zusätzliche eindeutige Komponente in der ID.
-
-## Pro Filterinstanz konfigurieren
-
-Über **Format Extension** ist nur der optionale Textparameter für die Zusammenfassung konfigurierbar. Der Dialog verwendet echte HTML-Dropdowns statt `datalist`, sodass Vorschläge auch im eingebetteten Tableau-Browser sichtbar sind. Zusätzlich ist die manuelle Eingabe weiter möglich. Die API-Abfrage erfolgt nur einmal und Fehler beim Laden der Liste erscheinen als Hinweis im Dialog. Die Filterbezeichnung ist optional und kann per Checkbox eingeblendet werden. Parameter können aus Vorschlägen gewählt oder namentlich eingegeben werden. Die Einstellungen werden über Tableau Extension Settings für diese Visualisierung im Workbook gespeichert. Jede Instanz benötigt ihre eigene Set Action für das passende Tableau Set.
-
-## Umstellung bisheriger Arbeitsmappen
-
-**Wichtig:** Ersetze das bisherige berechnete Filterfeld `cf.filter_aktiv`, das den alten Modusparameter abfragt, durch die Set-Mitgliedschaft direkt: `[s.filter_auswahl]`. Andernfalls kann ein alter Parameterwert (z. B. `KEINE`) weiter alle Datensätze ausblenden. Der alte `p.filter_modus` kann nach Entfernen aller Referenzen im Workbook gelöscht werden. Behalte die bestehende Set Action einschließlich **Remove all values from set** beim Aufheben einer Markierung. Die `.trex` bleibt unverändert.
-
-## Install
-
-GitHub Pages publishes the root of `main` directly. Download `hierarchy_filter.trex` and add it as a Viz Extension. Keep the existing Set Action. A mode parameter is no longer needed.
-
-### Tableau configuration
-
-- `Leaf ID`: stable unique leaf identifier
-- `Hierarchiestufen`: ordered level columns
-- `Set-Mitgliedschaft`: the Boolean Set field `s.filter_auswahl`
-- Set Action on `Select`: **Assign values to set** for `s.filter_auswahl`.
-- **Required change:** Under **Clearing the selection**, select **Remove all values from set** (German: **Alle Werte aus Set entfernen**). The previous **Keep set values** configuration cannot empty the Set.
-- Keep the extension's own source worksheet unfiltered, and ensure the Set Action targets the correct datasource/Set.
-
-Do not filter the extension's own data to the selected set.
-
-## Important caveat
-
-The initial Wunderbaum implementation is a prototype. Performance at 15,000 leaves, Dashboard/Cloud behavior, and complex cases with large multiselections are not yet verified. The app selects Tableau tuples for each required Set update. An empty visible selection means an empty Set; all selected checkboxes mean all available values are in the Set. For larger hierarchies, selecting all tuples may have a performance cost.
-
-## Files
-
-`js/app.js` = UI, `js/hierarchy.js` = hierarchy, `js/tableau-connector.js` = Tableau API, `js/core.js` = parsing, `js/vendor` = third-party library.
-
-All runtime scripts and stylesheets are locally hosted. Wunderbaum is MIT licensed; see `licenses/WUNDERBAUM-LICENSE.txt`. Project license: Apache-2.0.
+Projektlizenz: [Apache-2.0](LICENSE.txt). Wunderbaum: [MIT](licenses/WUNDERBAUM-LICENSE.txt). Alle Laufzeit-Abhängigkeiten liegen lokal im Repository.
